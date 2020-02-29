@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -66,10 +68,49 @@ public class graphicsApplication {
             -1.0f, 1.0f, 1.0f,
             1.0f, 1.0f, 1.0f,
             -1.0f, 1.0f, 1.0f,
-            1.0f,-1.0f, 1.0f
+            1.0f,-1.0f, 1.0f,
     };
 
+    // One UV for each vertex.
+    float[] g_uv_buffer_data = {
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 0.0f,
+            1.0f, 1.0f,
+            0.0f, 1.0f,
 
+    };
 
     // One color for each vertex. They were generated randomly.
     float[] g_color_buffer_data = {
@@ -110,6 +151,8 @@ public class graphicsApplication {
             0.820f,  0.883f,  0.371f,
             0.982f,  0.099f,  0.879f
     };
+    
+
 
     private final int width = 500;
 
@@ -245,17 +288,17 @@ public class graphicsApplication {
                 -1.0f,-1.0f, 1.0f,
                 1.0f,-1.0f, 1.0f,
 
-                1.0f, 1.0f, 1.0f,
                 -1.0f, 1.0f, 1.0f,
                 1.0f,-1.0f, 1.0f,
+                1.0f, 1.0f, 1.0f,
 
                 // right face
                 1.0f, 1.0f, 1.0f,
                 1.0f,-1.0f,-1.0f,
                 1.0f, 1.0f,-1.0f,
 
-                1.0f,-1.0f,-1.0f,
                 1.0f, 1.0f, 1.0f,
+                1.0f,-1.0f,-1.0f,
                 1.0f,-1.0f, 1.0f,
 
                 // top face
@@ -265,8 +308,16 @@ public class graphicsApplication {
 
                 1.0f, 1.0f, 1.0f,
                 -1.0f, 1.0f,-1.0f,
-                -1.0f, 1.0f, 1.0f
+                -1.0f, 1.0f, 1.0f,
+                
+                0.0f,0.0f,0.0f,
+                0.0f,0.0f,0.0f,
+                0.0f,0.0f,0.0f,
+                0.0f,0.0f,0.0f,
+                0.0f,0.0f,0.0f,
+                0.0f,0.0f,0.0f,
         };
+        
 
         // Enable depth test
         glEnable(GL_DEPTH_TEST);
@@ -319,6 +370,10 @@ public class graphicsApplication {
 
         int Texture = loadBMP_custom("resources/checkerboard.bmp");
 
+        float[][] buffers = loadBuffers("resources/magic-cube.obj");
+        g_vertex_buffer_data = buffers[0];
+        g_uv_buffer_data = buffers[1];
+
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
@@ -342,18 +397,18 @@ public class graphicsApplication {
                 toggle = false;
             }
 
-            for (int v = 0; v < 12*3 ; v++){
-                i = v/6 + 1;
-                g_color_buffer_data[3*v+0] = (float)Math.abs(Math.sin(time)) * (i/6f);
-                g_color_buffer_data[3*v+1] = (float)Math.abs(Math.sin(time + 2*Math.PI/3)) * (i/6f);
-                g_color_buffer_data[3*v+2] = (float)Math.abs(Math.sin(time + 4*Math.PI/3)) * (i/6f);
-            }
-            if (running) {
-                time += 0.02f;
-                if (time > Math.PI * 2) {
-                    time = 0f;
-                }
-            }
+//            for (int v = 0; v < 12*3 ; v++){
+//                i = v/6 + 1;
+//                g_color_buffer_data[3*v+0] = (float)Math.abs(Math.sin(time)) * (i/6f);
+//                g_color_buffer_data[3*v+1] = (float)Math.abs(Math.sin(time + 2*Math.PI/3)) * (i/6f);
+//                g_color_buffer_data[3*v+2] = (float)Math.abs(Math.sin(time + 4*Math.PI/3)) * (i/6f);
+//            }
+//            if (running) {
+//                time += 0.02f;
+//                if (time > Math.PI * 2) {
+//                    time = 0f;
+//                }
+//            }
 
             // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
             // A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
@@ -368,21 +423,30 @@ public class graphicsApplication {
             glVertexAttribPointer(0, 3, GL_FLOAT, false,0, 0);
             glEnableVertexAttribArray(0);
 
+            int uvBuffer = glGenBuffers();
+            glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+            glBufferData(GL_ARRAY_BUFFER, g_uv_buffer_data, GL_STATIC_DRAW);
+            glEnableVertexAttribArray(1);
+            glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+            glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
+            glEnableVertexAttribArray(1);
 
+            
             int colorBuffer = glGenBuffers();
             glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
             glBufferData(GL_ARRAY_BUFFER, g_color_buffer_data, GL_STATIC_DRAW);
             // 2nd attribute buffer : colors
-            glEnableVertexAttribArray(1);
+            glEnableVertexAttribArray(2);
             glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
             glVertexAttribPointer(
-                    1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+                    2,                                // attribute. No particular reason for 1, but must match the layout in the shader.
                     3,                                // size
                     GL_FLOAT,                         // type
                     false,                         // normalized?
                     0,                                // stride
                     0                          // array buffer offset
             );
+            glEnableVertexAttribArray(2);
 
 
             glDrawArrays(GL_TRIANGLES, 0, 12*3);
@@ -458,6 +522,10 @@ public class graphicsApplication {
         glDeleteShader(FragmentShaderID);
         return ProgramID;
     }
+    
+    public static int unsignedToBytes(byte b) {
+        return b & 0xFF;
+    } 
 
     private int loadBMP_custom(String imagePath) {
         // Data read from the header of the BMP file
@@ -502,13 +570,23 @@ public class graphicsApplication {
             data = new byte[imageSize];
 
             // Read the actual data from the file into the buffer
-            if (is.read(data,1, imageSize) < imageSize) {
+            if (is.read(data,0, imageSize) < imageSize) {
                 System.out.println("Error reading image. Not enough bytes read.");
             }
 
             // Wrap a byte array into a buffer
-            buf = ByteBuffer.wrap(data);
-
+            //buf = ByteBuffer.wrap(data);
+            //buf.order(ByteOrder.nativeOrder());
+            buf = BufferUtils.createByteBuffer(width*height*3);
+            for(int i=0; i<width*height; i++)
+            {
+                buf.put(data[i*3]);
+                buf.put(data[i*3+1]);
+                buf.put(data[i*3+2]);
+            }
+        
+            //buf = BufferUtils.createByteBuffer(width*height*3);
+            buf.flip();
             is.close();
         } catch(IOException e) {
             // if any I/O error occurs
@@ -518,6 +596,8 @@ public class graphicsApplication {
         int textureID;
         textureID = glGenTextures();
 
+        glEnable(GL_TEXTURE_2D);
+                
         // "Bind" the newly created texture : all future texture functions will modify this texture
         glBindTexture(GL_TEXTURE_2D, textureID);
 
@@ -528,6 +608,90 @@ public class graphicsApplication {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
         return textureID;
+    }
+
+    private float[][] loadBuffers(String path) throws IOException {
+        float[][] buffers = new float[2][];
+        // buffers[0] contains the vertex buffer
+        // buffers[1] contains the UV buffer
+
+        List<float[]> vertexBuffer = new ArrayList<>();
+        List<float[]> uvBuffer = new ArrayList<>();
+
+        List<String> file = Files.readAllLines(Path.of(path));
+        List<String> tokens;
+        float[] currentBuffer;
+
+        for (String line : file) {
+            tokens = parseLine(line, ' ');
+            // ensure not empty line
+            if (tokens.size() > 0) {
+                if (tokens.get(0) == "v") {
+                    // vertex coordinates
+                    currentBuffer = new float[4];
+                    currentBuffer[0] = Float.parseFloat(tokens.get(1));
+                    currentBuffer[1] = Float.parseFloat(tokens.get(2));
+                    currentBuffer[2] = Float.parseFloat(tokens.get(3));
+                    if (tokens.get(0).length() == 5) {
+                        currentBuffer[3] = Float.parseFloat(tokens.get(4));
+                    } else {
+                        currentBuffer[3] = 1.0f;
+                    }
+                    // anything not read in defaults to 0 anyway
+                    vertexBuffer.add(currentBuffer);
+                } else if (tokens.get(0) == "vt") {
+                    //texture co-ordinates
+                    currentBuffer = new float[3];
+                    currentBuffer[0] = Float.parseFloat(tokens.get(1));
+                    if (tokens.get(0).length() > 2) {
+                        currentBuffer[1] = Float.parseFloat(tokens.get(2));
+                    }
+                    if (tokens.get(0).length() > 3) {
+                        currentBuffer[2] = Float.parseFloat(tokens.get(3));
+                    }
+                    // anything not read in defaults to 0 anyway
+                    uvBuffer.add(currentBuffer);
+                } else {
+                    // other .obj functionality that I don't know how to use yet lol
+                }
+            }
+        }
+
+
+//        if (vertexBuffer.size() != uvBuffer.size()) {
+//            throw new IOException("Buffers are different lengths.");
+//        }
+
+
+        buffers[0] = new float[vertexBuffer.size() * 3];
+        buffers[1] = new float[uvBuffer.size() * 2];
+
+        for (int i = 0; i < vertexBuffer.size(); i++) {
+            // vertex buffer
+            buffers[0][3 * i] = vertexBuffer.get(i)[0];
+            buffers[0][3 * i + 1] = vertexBuffer.get(i)[1];
+            buffers[0][3 * i + 2] = vertexBuffer.get(i)[2];
+            // UV buffer
+            buffers[0][2 * i] = vertexBuffer.get(i)[0];
+            buffers[0][2 * i + 1] = vertexBuffer.get(i)[1];
+        }
+
+        return buffers;
+    }
+
+    private List<String> parseLine(String line, char delimiter) {
+        List<String> tokens = new ArrayList<>();
+        String current = "";
+        for (char c : line.toCharArray()) {
+            if (c == delimiter) {
+                tokens.add(current);
+                current = "";
+            } else {
+                current += c;
+            }
+        }
+        tokens.add(current);
+        return tokens;
     }
 
     public static void main(String[] args) {
