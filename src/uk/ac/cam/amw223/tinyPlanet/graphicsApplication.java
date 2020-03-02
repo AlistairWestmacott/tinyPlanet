@@ -431,6 +431,14 @@ public class graphicsApplication {
             glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
             glEnableVertexAttribArray(1);
 
+
+            // Generate a buffer for the indices
+            int elementbuffer;
+            int[] gl_index_buffer_data = null;// TODO
+            elementbuffer = glGenBuffers();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, gl_index_buffer_data, GL_STATIC_DRAW);
+
             
             int colorBuffer = glGenBuffers();
             glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
@@ -617,6 +625,7 @@ public class graphicsApplication {
 
         List<float[]> vertexBuffer = new ArrayList<>();
         List<float[]> uvBuffer = new ArrayList<>();
+        List<float[]> indexBuffer = new ArrayList<>();
 
         List<String> file = Files.readAllLines(Path.of(path));
         List<String> tokens;
@@ -626,7 +635,7 @@ public class graphicsApplication {
             tokens = parseLine(line, ' ');
             // ensure not empty line
             if (tokens.size() > 0) {
-                if (tokens.get(0) == "v") {
+                if (tokens.get(0).equals("v")) {
                     // vertex coordinates
                     currentBuffer = new float[4];
                     currentBuffer[0] = Float.parseFloat(tokens.get(1));
@@ -639,7 +648,7 @@ public class graphicsApplication {
                     }
                     // anything not read in defaults to 0 anyway
                     vertexBuffer.add(currentBuffer);
-                } else if (tokens.get(0) == "vt") {
+                } else if (tokens.get(0).equals("vt")) {
                     //texture co-ordinates
                     currentBuffer = new float[3];
                     currentBuffer[0] = Float.parseFloat(tokens.get(1));
@@ -651,9 +660,11 @@ public class graphicsApplication {
                     }
                     // anything not read in defaults to 0 anyway
                     uvBuffer.add(currentBuffer);
-                } else {
-                    // other .obj functionality that I don't know how to use yet lol
+                } else if (tokens.get(0).equals("f")) {
+                    // face information
+
                 }
+                // other .obj functionality that I don't know how to use yet lol
             }
         }
 
