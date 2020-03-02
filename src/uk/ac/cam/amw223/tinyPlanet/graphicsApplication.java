@@ -32,85 +32,89 @@ public class graphicsApplication {
     private long window;
 
 
-    static float[] g_vertex_buffer_data = {
-            -1.0f,-1.0f,-1.0f, // triangle 1 : begin
-            -1.0f,-1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f, // triangle 1 : end
-            1.0f, 1.0f,-1.0f, // triangle 2 : begin
-            -1.0f,-1.0f,-1.0f,
-            -1.0f, 1.0f,-1.0f, // triangle 2 : end
-            1.0f,-1.0f, 1.0f,// 3
-            -1.0f,-1.0f,-1.0f,
-            1.0f,-1.0f,-1.0f,
-            1.0f, 1.0f,-1.0f,//4
-            1.0f,-1.0f,-1.0f,
-            -1.0f,-1.0f,-1.0f,
-            -1.0f,-1.0f,-1.0f,//5
-            -1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f,-1.0f,
-            1.0f,-1.0f, 1.0f,//6
-            -1.0f,-1.0f, 1.0f,
-            -1.0f,-1.0f,-1.0f,
-            -1.0f, 1.0f, 1.0f,//7
-            -1.0f,-1.0f, 1.0f,
-            1.0f,-1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f,-1.0f,-1.0f,
-            1.0f, 1.0f,-1.0f,
-            1.0f,-1.0f,-1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f,-1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f,-1.0f,
-            -1.0f, 1.0f,-1.0f,
-            1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f,-1.0f,
-            -1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f,
-            1.0f,-1.0f, 1.0f,
-    };
+    float[] g_vertex_buffer_data;
+//            = {
+//            -1.0f,-1.0f,-1.0f, // triangle 1 : begin
+//            -1.0f,-1.0f, 1.0f,
+//            -1.0f, 1.0f, 1.0f, // triangle 1 : end
+//            1.0f, 1.0f,-1.0f, // triangle 2 : begin
+//            -1.0f,-1.0f,-1.0f,
+//            -1.0f, 1.0f,-1.0f, // triangle 2 : end
+//            1.0f,-1.0f, 1.0f,// 3
+//            -1.0f,-1.0f,-1.0f,
+//            1.0f,-1.0f,-1.0f,
+//            1.0f, 1.0f,-1.0f,//4
+//            1.0f,-1.0f,-1.0f,
+//            -1.0f,-1.0f,-1.0f,
+//            -1.0f,-1.0f,-1.0f,//5
+//            -1.0f, 1.0f, 1.0f,
+//            -1.0f, 1.0f,-1.0f,
+//            1.0f,-1.0f, 1.0f,//6
+//            -1.0f,-1.0f, 1.0f,
+//            -1.0f,-1.0f,-1.0f,
+//            -1.0f, 1.0f, 1.0f,//7
+//            -1.0f,-1.0f, 1.0f,
+//            1.0f,-1.0f, 1.0f,
+//            1.0f, 1.0f, 1.0f,
+//            1.0f,-1.0f,-1.0f,
+//            1.0f, 1.0f,-1.0f,
+//            1.0f,-1.0f,-1.0f,
+//            1.0f, 1.0f, 1.0f,
+//            1.0f,-1.0f, 1.0f,
+//            1.0f, 1.0f, 1.0f,
+//            1.0f, 1.0f,-1.0f,
+//            -1.0f, 1.0f,-1.0f,
+//            1.0f, 1.0f, 1.0f,
+//            -1.0f, 1.0f,-1.0f,
+//            -1.0f, 1.0f, 1.0f,
+//            1.0f, 1.0f, 1.0f,
+//            -1.0f, 1.0f, 1.0f,
+//            1.0f,-1.0f, 1.0f,
+//    };
 
     // One UV for each vertex.
-    float[] g_uv_buffer_data = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+    float[] g_uv_buffer_data;
+//            = {
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 0.0f,
+//            1.0f, 1.0f,
+//            0.0f, 1.0f,
+//
+//    };
 
-    };
+    int[] g_index_buffer_data;
 
     // One color for each vertex. They were generated randomly.
     float[] g_color_buffer_data = {
@@ -370,9 +374,15 @@ public class graphicsApplication {
 
         int Texture = loadBMP_custom("resources/checkerboard.bmp");
 
-        float[][] buffers = loadBuffers("resources/magic-cube.obj");
-        g_vertex_buffer_data = buffers[0];
-        g_uv_buffer_data = buffers[1];
+//        float[][] buffers = loadBuffers("resources/magic-cube.obj");
+//        g_vertex_buffer_data = buffers[0];
+//        g_uv_buffer_data = buffers[1];
+
+        modelLoader model = new modelLoader("resources/magic-cube.obj");
+
+        g_vertex_buffer_data = model.getVertexBuffer();
+        g_uv_buffer_data = model.getUVBuffer();
+        g_index_buffer_data = model.getVertexIndexBuffer();
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
@@ -433,11 +443,9 @@ public class graphicsApplication {
 
 
             // Generate a buffer for the indices
-            int elementbuffer;
-            int[] gl_index_buffer_data = null;// TODO
-            elementbuffer = glGenBuffers();
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, gl_index_buffer_data, GL_STATIC_DRAW);
+            int elementBuffer = glGenBuffers();
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, g_index_buffer_data, GL_STATIC_DRAW);
 
             
             int colorBuffer = glGenBuffers();
@@ -457,7 +465,7 @@ public class graphicsApplication {
             glEnableVertexAttribArray(2);
 
 
-            glDrawArrays(GL_TRIANGLES, 0, 12*3);
+            glDrawArrays(GL_TRIANGLES, 0, g_vertex_buffer_data.length);
             // OMG I DID IT!!
 
 
