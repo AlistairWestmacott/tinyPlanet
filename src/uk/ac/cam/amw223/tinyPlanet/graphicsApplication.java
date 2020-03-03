@@ -7,6 +7,7 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,135 +34,13 @@ public class graphicsApplication {
 
 
     float[] g_vertex_buffer_data;
-//            = {
-//            -1.0f,-1.0f,-1.0f, // triangle 1 : begin
-//            -1.0f,-1.0f, 1.0f,
-//            -1.0f, 1.0f, 1.0f, // triangle 1 : end
-//            1.0f, 1.0f,-1.0f, // triangle 2 : begin
-//            -1.0f,-1.0f,-1.0f,
-//            -1.0f, 1.0f,-1.0f, // triangle 2 : end
-//            1.0f,-1.0f, 1.0f,// 3
-//            -1.0f,-1.0f,-1.0f,
-//            1.0f,-1.0f,-1.0f,
-//            1.0f, 1.0f,-1.0f,//4
-//            1.0f,-1.0f,-1.0f,
-//            -1.0f,-1.0f,-1.0f,
-//            -1.0f,-1.0f,-1.0f,//5
-//            -1.0f, 1.0f, 1.0f,
-//            -1.0f, 1.0f,-1.0f,
-//            1.0f,-1.0f, 1.0f,//6
-//            -1.0f,-1.0f, 1.0f,
-//            -1.0f,-1.0f,-1.0f,
-//            -1.0f, 1.0f, 1.0f,//7
-//            -1.0f,-1.0f, 1.0f,
-//            1.0f,-1.0f, 1.0f,
-//            1.0f, 1.0f, 1.0f,
-//            1.0f,-1.0f,-1.0f,
-//            1.0f, 1.0f,-1.0f,
-//            1.0f,-1.0f,-1.0f,
-//            1.0f, 1.0f, 1.0f,
-//            1.0f,-1.0f, 1.0f,
-//            1.0f, 1.0f, 1.0f,
-//            1.0f, 1.0f,-1.0f,
-//            -1.0f, 1.0f,-1.0f,
-//            1.0f, 1.0f, 1.0f,
-//            -1.0f, 1.0f,-1.0f,
-//            -1.0f, 1.0f, 1.0f,
-//            1.0f, 1.0f, 1.0f,
-//            -1.0f, 1.0f, 1.0f,
-//            1.0f,-1.0f, 1.0f,
-//    };
 
     // One UV for each vertex.
     float[] g_uv_buffer_data;
-//            = {
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 0.0f,
-//            1.0f, 1.0f,
-//            0.0f, 1.0f,
-//
-//    };
 
     int[] g_index_buffer_data;
 
-    // One color for each vertex. They were generated randomly.
-    float[] g_color_buffer_data = {
-            0.583f,  0.771f,  0.014f,
-            0.609f,  0.115f,  0.436f,
-            0.327f,  0.483f,  0.844f,
-            0.822f,  0.569f,  0.201f,
-            0.435f,  0.602f,  0.223f,
-            0.310f,  0.747f,  0.185f,
-            0.597f,  0.770f,  0.761f,
-            0.559f,  0.436f,  0.730f,
-            0.359f,  0.583f,  0.152f,
-            0.483f,  0.596f,  0.789f,
-            0.559f,  0.861f,  0.639f,
-            0.195f,  0.548f,  0.859f,
-            0.014f,  0.184f,  0.576f,
-            0.771f,  0.328f,  0.970f,
-            0.406f,  0.615f,  0.116f,
-            0.676f,  0.977f,  0.133f,
-            0.971f,  0.572f,  0.833f,
-            0.140f,  0.616f,  0.489f,
-            0.997f,  0.513f,  0.064f,
-            0.945f,  0.719f,  0.592f,
-            0.543f,  0.021f,  0.978f,
-            0.279f,  0.317f,  0.505f,
-            0.167f,  0.620f,  0.077f,
-            0.347f,  0.857f,  0.137f,
-            0.055f,  0.953f,  0.042f,
-            0.714f,  0.505f,  0.345f,
-            0.783f,  0.290f,  0.734f,
-            0.722f,  0.645f,  0.174f,
-            0.302f,  0.455f,  0.848f,
-            0.225f,  0.587f,  0.040f,
-            0.517f,  0.713f,  0.338f,
-            0.053f,  0.959f,  0.120f,
-            0.393f,  0.621f,  0.362f,
-            0.673f,  0.211f,  0.457f,
-            0.820f,  0.883f,  0.371f,
-            0.982f,  0.099f,  0.879f
-    };
-    
-
-
-    private final int width = 500;
-
     public void run() {
-        System.out.println("Hello LWJGL " + Version.getVersion() + "!");
 
         try {
             init();
@@ -252,77 +131,6 @@ public class graphicsApplication {
 
         int programID = LoadShaders("resources/textureVertexShader.glsl", "resources/textureFragmentShader.glsl");
 
-        g_color_buffer_data = new float [12*3*3];
-        for (int v = 0; v < 12*3 ; v++){
-            g_color_buffer_data[3*v+0] = v/36.0f;
-            g_color_buffer_data[3*v+1] = 0f;
-            g_color_buffer_data[3*v+2] = 0f;
-        }
-
-        g_vertex_buffer_data = new float[]{
-                // left face
-                -1.0f,-1.0f,-1.0f,
-                -1.0f,-1.0f, 1.0f,
-                -1.0f, 1.0f, 1.0f,
-
-                -1.0f,-1.0f,-1.0f,
-                -1.0f, 1.0f, 1.0f,
-                -1.0f, 1.0f,-1.0f,
-
-                // back face
-                1.0f, 1.0f,-1.0f,
-                1.0f,-1.0f,-1.0f,
-                -1.0f,-1.0f,-1.0f,
-
-                1.0f, 1.0f,-1.0f,
-                -1.0f,-1.0f,-1.0f,
-                -1.0f, 1.0f,-1.0f,
-
-                // bottom face
-                1.0f,-1.0f, 1.0f,
-                -1.0f,-1.0f,-1.0f,
-                1.0f,-1.0f,-1.0f,
-
-                1.0f,-1.0f, 1.0f,
-                -1.0f,-1.0f, 1.0f,
-                -1.0f,-1.0f,-1.0f,
-
-                // front face
-                -1.0f, 1.0f, 1.0f,
-                -1.0f,-1.0f, 1.0f,
-                1.0f,-1.0f, 1.0f,
-
-                -1.0f, 1.0f, 1.0f,
-                1.0f,-1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f,
-
-                // right face
-                1.0f, 1.0f, 1.0f,
-                1.0f,-1.0f,-1.0f,
-                1.0f, 1.0f,-1.0f,
-
-                1.0f, 1.0f, 1.0f,
-                1.0f,-1.0f,-1.0f,
-                1.0f,-1.0f, 1.0f,
-
-                // top face
-                1.0f, 1.0f, 1.0f,
-                1.0f, 1.0f,-1.0f,
-                -1.0f, 1.0f,-1.0f,
-
-                1.0f, 1.0f, 1.0f,
-                -1.0f, 1.0f,-1.0f,
-                -1.0f, 1.0f, 1.0f,
-                
-                0.0f,0.0f,0.0f,
-                0.0f,0.0f,0.0f,
-                0.0f,0.0f,0.0f,
-                0.0f,0.0f,0.0f,
-                0.0f,0.0f,0.0f,
-                0.0f,0.0f,0.0f,
-        };
-        
-
         // Enable depth test
         glEnable(GL_DEPTH_TEST);
         // Accept fragment if it closer to the camera than the former one
@@ -333,24 +141,21 @@ public class graphicsApplication {
 
         glUseProgram(programID);
 
-        // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
         int[] windowWidth = new int[1];
         int[] windowHeight = new int[1];
         glfwGetWindowSize(window, windowWidth, windowHeight);
 
+        // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
         Matrix4f Projection = new Matrix4f().perspective((float)Math.toRadians(45.0f),
                 (float) windowWidth[0] / (float)windowHeight[0],
                 0.1f,
                 100.0f);
 
-        // Or, for an ortho camera :
-        //glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
-
         // Camera matrix
-            Matrix4f View = new Matrix4f().lookAt(
-                    new Vector3f(-4,3,3), // Camera is at (4,3,3), in World Space
-                    new Vector3f(0,0,0), // and looks at the origin
-                    new Vector3f(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+        Matrix4f View = new Matrix4f().lookAt(
+            new Vector3f(-4,-3,-3), // Camera is at (4,3,3), in World Space
+            new Vector3f(0,0,0), // and looks at the origin
+            new Vector3f(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
         );
 
         // Model matrix : an identity matrix (model will be at the origin)
@@ -372,31 +177,20 @@ public class graphicsApplication {
         boolean toggle = false;//for debouncing?
         int i;
 
-        int Texture = loadBMP_custom("resources/checkerboard.bmp");
-
-//        float[][] buffers = loadBuffers("resources/magic-cube.obj");
-//        g_vertex_buffer_data = buffers[0];
-//        g_uv_buffer_data = buffers[1];
+        // texture is unused because the texture is bound to openGL within loadBMP_custom()
+        int Texture = loadTexture("resources/magic-arrow.png");
 
         modelLoader model = new modelLoader("resources/magic-cube.obj");
 
         g_vertex_buffer_data = model.getVertexBuffer();
         g_uv_buffer_data = model.getUVBuffer();
-        g_index_buffer_data = model.getVertexIndexBuffer();
+        g_index_buffer_data = model.getIndexBuffer();
 
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-
-            // DRAW A TRIANGLE!!
-            float[] verteces = new float[] {
-                0.0f,  0.5f,
-                -0.5f, -0.5f,
-                0.5f, -0.5f
-            };
-
-
+            // clear the framebuffer
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
                 if (!toggle) {
@@ -406,22 +200,6 @@ public class graphicsApplication {
             } else {
                 toggle = false;
             }
-
-//            for (int v = 0; v < 12*3 ; v++){
-//                i = v/6 + 1;
-//                g_color_buffer_data[3*v+0] = (float)Math.abs(Math.sin(time)) * (i/6f);
-//                g_color_buffer_data[3*v+1] = (float)Math.abs(Math.sin(time + 2*Math.PI/3)) * (i/6f);
-//                g_color_buffer_data[3*v+2] = (float)Math.abs(Math.sin(time + 4*Math.PI/3)) * (i/6f);
-//            }
-//            if (running) {
-//                time += 0.02f;
-//                if (time > Math.PI * 2) {
-//                    time = 0f;
-//                }
-//            }
-
-            // Our vertices. Three consecutive floats give a 3D vertex; Three consecutive vertices give a triangle.
-            // A cube has 6 faces with 2 triangles each, so this makes 6*2=12 triangles, and 12*3 vertices
 
             int vao = glGenVertexArrays();
             glBindVertexArray(vao);
@@ -436,8 +214,6 @@ public class graphicsApplication {
             int uvBuffer = glGenBuffers();
             glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
             glBufferData(GL_ARRAY_BUFFER, g_uv_buffer_data, GL_STATIC_DRAW);
-            glEnableVertexAttribArray(1);
-            glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
             glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
             glEnableVertexAttribArray(1);
 
@@ -446,27 +222,17 @@ public class graphicsApplication {
             int elementBuffer = glGenBuffers();
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, g_index_buffer_data, GL_STATIC_DRAW);
+            //glEnableVertexAttribArray();
 
-            
-            int colorBuffer = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-            glBufferData(GL_ARRAY_BUFFER, g_color_buffer_data, GL_STATIC_DRAW);
-            // 2nd attribute buffer : colors
-            glEnableVertexAttribArray(2);
-            glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-            glVertexAttribPointer(
-                    2,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-                    3,                                // size
-                    GL_FLOAT,                         // type
-                    false,                         // normalized?
-                    0,                                // stride
-                    0                          // array buffer offset
+            //glDrawArrays(GL_TRIANGLES, 0, g_vertex_buffer_data.length);
+
+            // Draw the triangles !
+            glDrawElements(
+                    GL_TRIANGLES,      // mode
+                    g_index_buffer_data.length,    // count
+                    GL_UNSIGNED_INT,   // type
+                    0           // element array buffer offset
             );
-            glEnableVertexAttribArray(2);
-
-
-            glDrawArrays(GL_TRIANGLES, 0, g_vertex_buffer_data.length);
-            // OMG I DID IT!!
 
 
             glfwSwapBuffers(window); // swap the color buffers
@@ -626,92 +392,28 @@ public class graphicsApplication {
         return textureID;
     }
 
-    private float[][] loadBuffers(String path) throws IOException {
-        float[][] buffers = new float[2][];
-        // buffers[0] contains the vertex buffer
-        // buffers[1] contains the UV buffer
+    private int loadTexture(String path) {
+        int textureID;
 
-        List<float[]> vertexBuffer = new ArrayList<>();
-        List<float[]> uvBuffer = new ArrayList<>();
-        List<float[]> indexBuffer = new ArrayList<>();
-
-        List<String> file = Files.readAllLines(Path.of(path));
-        List<String> tokens;
-        float[] currentBuffer;
-
-        for (String line : file) {
-            tokens = parseLine(line, ' ');
-            // ensure not empty line
-            if (tokens.size() > 0) {
-                if (tokens.get(0).equals("v")) {
-                    // vertex coordinates
-                    currentBuffer = new float[4];
-                    currentBuffer[0] = Float.parseFloat(tokens.get(1));
-                    currentBuffer[1] = Float.parseFloat(tokens.get(2));
-                    currentBuffer[2] = Float.parseFloat(tokens.get(3));
-                    if (tokens.get(0).length() == 5) {
-                        currentBuffer[3] = Float.parseFloat(tokens.get(4));
-                    } else {
-                        currentBuffer[3] = 1.0f;
-                    }
-                    // anything not read in defaults to 0 anyway
-                    vertexBuffer.add(currentBuffer);
-                } else if (tokens.get(0).equals("vt")) {
-                    //texture co-ordinates
-                    currentBuffer = new float[3];
-                    currentBuffer[0] = Float.parseFloat(tokens.get(1));
-                    if (tokens.get(0).length() > 2) {
-                        currentBuffer[1] = Float.parseFloat(tokens.get(2));
-                    }
-                    if (tokens.get(0).length() > 3) {
-                        currentBuffer[2] = Float.parseFloat(tokens.get(3));
-                    }
-                    // anything not read in defaults to 0 anyway
-                    uvBuffer.add(currentBuffer);
-                } else if (tokens.get(0).equals("f")) {
-                    // face information
-
-                }
-                // other .obj functionality that I don't know how to use yet lol
-            }
-        }
+        textureLoader tex = new textureLoader(path);
 
 
-//        if (vertexBuffer.size() != uvBuffer.size()) {
-//            throw new IOException("Buffers are different lengths.");
-//        }
+        textureID = glGenTextures();
 
+        glEnable(GL_TEXTURE_2D);
 
-        buffers[0] = new float[vertexBuffer.size() * 3];
-        buffers[1] = new float[uvBuffer.size() * 2];
+        // "Bind" the newly created texture : all future texture functions will modify this texture
+        glBindTexture(GL_TEXTURE_2D, textureID);
 
-        for (int i = 0; i < vertexBuffer.size(); i++) {
-            // vertex buffer
-            buffers[0][3 * i] = vertexBuffer.get(i)[0];
-            buffers[0][3 * i + 1] = vertexBuffer.get(i)[1];
-            buffers[0][3 * i + 2] = vertexBuffer.get(i)[2];
-            // UV buffer
-            buffers[0][2 * i] = vertexBuffer.get(i)[0];
-            buffers[0][2 * i + 1] = vertexBuffer.get(i)[1];
-        }
+        // Give the image to OpenGL
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, tex.getWidth(), tex.getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, tex.buffer());
 
-        return buffers;
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        return textureID;
     }
 
-    private List<String> parseLine(String line, char delimiter) {
-        List<String> tokens = new ArrayList<>();
-        String current = "";
-        for (char c : line.toCharArray()) {
-            if (c == delimiter) {
-                tokens.add(current);
-                current = "";
-            } else {
-                current += c;
-            }
-        }
-        tokens.add(current);
-        return tokens;
-    }
 
     public static void main(String[] args) {
         new graphicsApplication().run();
