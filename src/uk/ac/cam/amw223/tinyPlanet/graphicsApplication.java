@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -31,7 +32,6 @@ public class graphicsApplication {
 
     // The window handle
     private long window;
-
 
     float[] g_vertex_buffer_data;
 
@@ -153,7 +153,7 @@ public class graphicsApplication {
 
         // Camera matrix
         Matrix4f View = new Matrix4f().lookAt(
-            new Vector3f(-4,-3,-3), // Camera is at (4,3,3), in World Space
+            new Vector3f(-4,3,-3), // Camera is at (4,3,3), in World Space
             new Vector3f(0,0,0), // and looks at the origin
             new Vector3f(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
         );
@@ -186,11 +186,49 @@ public class graphicsApplication {
         g_uv_buffer_data = model.getUVBuffer();
         g_index_buffer_data = model.getIndexBuffer();
 
+        // position
+        Vector3f position = new Vector3f( 0, 0, 5 );
+        // horizontal angle : toward -Z
+        float horizontalAngle = 3.14f;
+        // vertical angle : 0, look at the horizon
+        float verticalAngle = 0.0f;
+        // Initial Field of View
+        float initialFoV = 45.0f;
+
+        float speed = 3.0f; // 3 units / second
+        float mouseSpeed = 0.05f;
+
+        double xpos, ypos;
+        DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
+        DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
+
+        double lastTime = 0.0;
+        double currentTime = glfwGetTime();
+        float deltaTime;
+
+        // Right vector
+        Vector3f right = new Vector3f(
+                (float)Math.sin(horizontalAngle - 3.14f/2.0f),
+                0.0f,
+                (float)Math.cos(horizontalAngle - 3.14f/2.0f)
+        );
+        Vector3f direction = new Vector3f(
+                (float)Math.cos(verticalAngle) * (float)Math.sin(horizontalAngle),
+                (float)Math.sin(verticalAngle),
+                (float)Math.cos(verticalAngle) * (float)Math.cos(horizontalAngle)
+        );
+
+        // Up vector : perpendicular to both direction and right
+        Vector3f up = new Vector3f();
+        right.cross(direction, up);
+        Vector3f tempDirection = new Vector3f();
+
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
             // clear the framebuffer
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
             if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
                 if (!toggle) {
@@ -200,6 +238,77 @@ public class graphicsApplication {
             } else {
                 toggle = false;
             }
+
+
+            // CAMERA CONTROLS
+
+//            lastTime = currentTime;
+//            currentTime = glfwGetTime();
+//            deltaTime = (float)(currentTime - lastTime);
+//
+//            // reading the mouse
+//            glfwGetCursorPos(window, xBuffer, yBuffer);
+//            xpos = xBuffer.get(0);
+//            ypos = yBuffer.get(0);
+//            // Reset mouse position for next frame
+//            glfwSetCursorPos(window, windowWidth[0]/2, windowHeight[0]/2);
+//            // Compute new orientation
+//            horizontalAngle += mouseSpeed * deltaTime * (float)(windowWidth[0]/2.0f - xpos );
+//            verticalAngle   += mouseSpeed * deltaTime * (float)(windowHeight[0]/2.0f - ypos );
+//
+//            // Direction : Spherical coordinates to Cartesian coordinates conversion
+//            direction = new Vector3f(
+//                    (float)Math.cos(verticalAngle) * (float)Math.sin(horizontalAngle),
+//                    (float)Math.sin(verticalAngle),
+//                    (float)Math.cos(verticalAngle) * (float)Math.cos(horizontalAngle)
+//            );
+//
+//            right = new Vector3f(
+//                    (float)Math.sin(horizontalAngle - 3.14f/2.0f),
+//                    0.0f,
+//                    (float)Math.cos(horizontalAngle - 3.14f/2.0f)
+//            );
+//
+//            // Move forward
+//            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+//                direction.mul(deltaTime * speed, tempDirection);
+//                position.add(tempDirection);
+//            }
+//            // Move backward
+//            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+//                direction.mul(deltaTime * speed, tempDirection);
+//                position.sub(tempDirection);
+//            }
+//            // Strafe right
+//            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+//                right.mul(deltaTime * speed, tempDirection);
+//                position.add(tempDirection);
+//            }
+//            // Strafe left
+//            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+//                right.mul(deltaTime * speed, tempDirection);
+//                position.sub(tempDirection);
+//            }
+//
+//            // Projection matrix : 45&deg; Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+//            Projection = new Matrix4f().perspective((float)Math.toRadians(initialFoV),
+//                    (float) windowWidth[0] / (float)windowHeight[0],
+//                    0.1f,
+//                    100.0f);
+//
+//            position.add(direction, tempDirection);
+//            // Camera matrix
+//            View = new Matrix4f().lookAt(
+//                    position,          // Camera is here
+//                    tempDirection,     // and looks here : at the same position, plus "direction"
+//                    up                 // Head is up (set to 0,-1,0 to look upside-down)
+//            );
+//            // Our ModelViewProjection : multiplication of our 3 matrices
+//            mvp = Projection.mul(View).mul(Model); // Remember, matrix multiplication is the other way around
+//
+//            // Send our transformation to the currently bound shader, in the "MVP" uniform
+//            // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+//            glUniformMatrix4fv(MatrixID, false, mvp.get(new float[16]));// this new float[] bit could be a source of errors
 
             int vao = glGenVertexArrays();
             glBindVertexArray(vao);
