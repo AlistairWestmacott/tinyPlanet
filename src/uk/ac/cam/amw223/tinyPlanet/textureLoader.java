@@ -49,9 +49,15 @@ public class textureLoader {
 
     public ByteBuffer buffer() {
         ByteBuffer buf = BufferUtils.createByteBuffer(width*height*3);
-        for(int i=0; i<width*height; i++)
-        {
-            buf.put(data[i]);
+//        for(int i = 0; i < width * height * 3; i++)
+//        {
+//            buf.put(data[i]);
+//        }
+
+        for (int i = width * height; i > 0 ; i-- ) {
+            buf.put(data[3*i-3]);
+            buf.put(data[3*i-2]);
+            buf.put(data[3*i-1]);
         }
 
         //buf = BufferUtils.createByteBuffer(width*height*3);

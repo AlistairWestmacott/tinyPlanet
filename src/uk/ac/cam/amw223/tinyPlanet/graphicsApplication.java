@@ -153,7 +153,7 @@ public class graphicsApplication {
 
         // Camera matrix
         Matrix4f View = new Matrix4f().lookAt(
-            new Vector3f(-4,3,-3), // Camera is at (4,3,3), in World Space
+            new Vector3f(4,3,3), // Camera is at (4,3,3), in World Space
             new Vector3f(0,0,0), // and looks at the origin
             new Vector3f(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
         );
@@ -180,7 +180,7 @@ public class graphicsApplication {
         // texture is unused because the texture is bound to openGL within loadBMP_custom()
         int Texture = loadTexture("resources/magic-arrow.png");
 
-        modelLoader model = new modelLoader("resources/magic-cube.obj");
+        modelLoader model = new modelLoader("resources/monkey.obj");
 
         g_vertex_buffer_data = model.getVertexBuffer();
         g_uv_buffer_data = model.getUVBuffer();
@@ -493,7 +493,7 @@ public class graphicsApplication {
         glBindTexture(GL_TEXTURE_2D, textureID);
 
         // Give the image to OpenGL
-        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, buf);
+        glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, buf);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
