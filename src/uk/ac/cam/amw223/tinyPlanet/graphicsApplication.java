@@ -1,5 +1,6 @@
 package uk.ac.cam.amw223.tinyPlanet;
 
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.*;
@@ -7,21 +8,16 @@ import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 import org.lwjgl.system.*;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL12.GL_BGR;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
@@ -32,11 +28,12 @@ public class graphicsApplication {
 
     // The window handle
     private long window;
+    private int programID;
 
     float[] g_vertex_buffer_data;
-
-    // One UV for each vertex.
     float[] g_uv_buffer_data;
+    float[] g_normal_buffer_data;
+
 
     int[] g_index_buffer_data;
 
@@ -129,7 +126,7 @@ public class graphicsApplication {
         // bindings available for use.
         GL.createCapabilities();
 
-        int programID = LoadShaders("resources/textureVertexShader.glsl", "resources/textureFragmentShader.glsl");
+        programID = LoadShaders("resources/textureVertexShader.glsl", "resources/textureFragmentShader.glsl");
 
         // Enable depth test
         glEnable(GL_DEPTH_TEST);
@@ -137,7 +134,7 @@ public class graphicsApplication {
         glDepthFunc(GL_LESS);
 
         // Set the clear color
-        glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
         glUseProgram(programID);
 
@@ -163,6 +160,10 @@ public class graphicsApplication {
         // Our ModelViewProjection : multiplication of our 3 matrices
         Matrix4f mvp = Projection.mul(View).mul(Model); // Remember, matrix multiplication is the other way around
 
+        // Transformation by a nonorthogonal matrix does not preserve angles
+        // Thus we need a separate transformation matrix for normals
+        Matrix3f normal_matrix;
+
         // Get a handle for our "MVP" uniform
         // Only during the initialisation
         int MatrixID = glGetUniformLocation(programID, "MVP");
@@ -184,6 +185,7 @@ public class graphicsApplication {
 
         g_vertex_buffer_data = model.getVertexBuffer();
         g_uv_buffer_data = model.getUVBuffer();
+        g_normal_buffer_data = model.getNormalBuffer();
         g_index_buffer_data = model.getIndexBuffer();
 
         // position
@@ -223,6 +225,13 @@ public class graphicsApplication {
         right.cross(direction, up);
         Vector3f tempDirection = new Vector3f();
 
+
+        int mvpLocation = glGetUniformLocation(programID, "MVP");
+        int normalMVPLocation = glGetUniformLocation(programID, "normalMVP");
+        FloatBuffer bufferMVP = BufferUtils.createFloatBuffer(16);
+        FloatBuffer bufferNormalMVP = BufferUtils.createFloatBuffer(9);
+
+
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
@@ -239,8 +248,24 @@ public class graphicsApplication {
                 toggle = false;
             }
 
+            // SHADING
+
+            mvp.get(bufferMVP);
+            glUniformMatrix4fv(mvpLocation, false, bufferMVP);
+
+            // Transformation by a nonorthogonal matrix does not preserve angles
+            // Thus we need a separate transformation matrix for normals
+            normal_matrix = new Matrix3f();
+            // Calculate normal transformation matrix
+            mvp.get3x3(normal_matrix);
+            normal_matrix = normal_matrix.invert();
+            //normal_matrix = normal_matrix.transpose();
+
+            normal_matrix.get(bufferNormalMVP);
+            glUniformMatrix3fv(normalMVPLocation, true, bufferNormalMVP);
 
             // CAMERA CONTROLS
+
 
 //            lastTime = currentTime;
 //            currentTime = glfwGetTime();
@@ -310,6 +335,11 @@ public class graphicsApplication {
 //            // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
 //            glUniformMatrix4fv(MatrixID, false, mvp.get(new float[16]));// this new float[] bit could be a source of errors
 
+
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+                // change model matrix
+            }
+
             int vao = glGenVertexArrays();
             glBindVertexArray(vao);
 
@@ -326,12 +356,20 @@ public class graphicsApplication {
             glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
             glEnableVertexAttribArray(1);
 
+            //glEnableVertexAttribArray();
+
+            int normalBuffer = glGenBuffers();
+            glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
+            glBufferData(GL_ARRAY_BUFFER, g_normal_buffer_data, GL_STATIC_DRAW);
+            // 3rd attribute buffer : normals
+            glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+            glEnableVertexAttribArray(2);
 
             // Generate a buffer for the indices
             int elementBuffer = glGenBuffers();
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, g_index_buffer_data, GL_STATIC_DRAW);
-            //glEnableVertexAttribArray();
+
 
             //glDrawArrays(GL_TRIANGLES, 0, g_vertex_buffer_data.length);
 
@@ -350,6 +388,13 @@ public class graphicsApplication {
             // invoked during this call.
             glfwPollEvents();
         }
+    }
+
+    public void uploadMatrix4f(Matrix4f m, String target) {
+        int location = glGetUniformLocation(programID, target);
+        FloatBuffer buffer = BufferUtils.createFloatBuffer(16);
+        m.get(buffer);
+        glUniformMatrix4fv(location, false, buffer);
     }
 
 
@@ -466,8 +511,6 @@ public class graphicsApplication {
             }
 
             // Wrap a byte array into a buffer
-            //buf = ByteBuffer.wrap(data);
-            //buf.order(ByteOrder.nativeOrder());
             buf = BufferUtils.createByteBuffer(width*height*3);
             for(int i=0; i<width*height; i++)
             {
@@ -476,7 +519,6 @@ public class graphicsApplication {
                 buf.put(data[i*3+2]);
             }
         
-            //buf = BufferUtils.createByteBuffer(width*height*3);
             buf.flip();
             is.close();
         } catch(IOException e) {

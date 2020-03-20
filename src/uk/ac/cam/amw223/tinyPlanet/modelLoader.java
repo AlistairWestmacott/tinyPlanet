@@ -1,31 +1,27 @@
 package uk.ac.cam.amw223.tinyPlanet;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class modelLoader {
 
-//    private List<float[]> vertexBuffer;
-//    private List<float[]> uvBuffer;
-//    private List<int[]> vertexIndexBuffer;
-//    private List<int[]> uvIndexBuffer;
-
     List<float[]> vertexBufferList = new ArrayList<>();
     List<float[]> uvBufferList = new ArrayList<>();
+    List<float[]> normalBufferList = new ArrayList<>();
     List<int[]> vertexIndexBufferList = new ArrayList<>();
     List<int[]> uvIndexBufferList = new ArrayList<>();
+    List<int[]> normalIndexBufferList = new ArrayList<>();
 
     private float[] vertexBuffer;
     private float[] uvBuffer;
+    private float[] normalBuffer;
 
     // used in construction of indexBuffer
     private int[] vertexIndexBuffer;
     private int[] uvIndexBuffer;
+    private int[] normalIndexBuffer;
 
     private int[] indexBuffer;
 
@@ -46,8 +42,10 @@ public class modelLoader {
         int faceType = 0;
         float[] currentVertexLine;
         float[] currentUVLine;
+        float[] currentNormalLine;
         int[] currentVertexIndexLine;
         int[] currentUVIndexLine;
+        int[] currentNormalIndexLine;
 
         for (String line : file) {
             tokens = parseLine(line, ' ');
@@ -78,10 +76,17 @@ public class modelLoader {
                     }
                     // anything not read in defaults to 0 anyway
                     uvBufferList.add(currentUVLine);
+                } else if (tokens.get(0).equals("vn")) {
+                    currentNormalLine = new float[3];
+                    currentNormalLine[0] = Float.parseFloat(tokens.get(1));
+                    currentNormalLine[1] = Float.parseFloat(tokens.get(2));
+                    currentNormalLine[2] = Float.parseFloat(tokens.get(3));
+                    normalBufferList.add(currentNormalLine);
                 } else if (tokens.get(0).equals("f")) {
                     // face information
                     currentVertexIndexLine = new int[tokens.size() - 1];
                     currentUVIndexLine = new int[tokens.size() - 1];
+                    currentNormalIndexLine = new int[tokens.size() - 1];
                     for (int i = 1; i < tokens.size(); i++) {
                         // triangle i can be made with the following
                         // 0 (i) (i + 1)  [for i in 1..(n - 2)]
@@ -104,6 +109,7 @@ public class modelLoader {
                         }
                         if (faceType > 2) {
                             // vector normal, not implemented yet
+                            currentNormalIndexLine[i - 1] = Integer.parseInt(faceTokens.get(2)) - 1;
                         }
                     }
                     for (int i = 1; i < currentVertexIndexLine.length - 1; i++) {
@@ -122,6 +128,13 @@ public class modelLoader {
                                         currentUVIndexLine[i],
                                         currentUVIndexLine[i + 1]});
                     }
+                    for (int i = 1; i < currentNormalIndexLine.length - 1; i++) {
+                        normalIndexBufferList.add(
+                                new int[]{currentNormalIndexLine[0],
+                                        currentNormalIndexLine[i],
+                                        currentNormalIndexLine[i + 1]}
+                                        );
+                    }
                     faceType = 0;
                 }
                 // other .obj functionality that I don't know how to use yet lol
@@ -132,6 +145,8 @@ public class modelLoader {
         generateVertexIndexBuffer();
         generateUVBuffer();
         generateUVIndexBuffer();
+        generateNormalBuffer();
+        generateNormalIndexBuffer();
 
         // this ties together the two index buffers into one buffer that openGL can use
         // (it also modifies the orderings in the vertex and UV buffers so they match the
@@ -173,6 +188,16 @@ public class modelLoader {
         uvBuffer = vbo;
     }
 
+    private void generateNormalBuffer() {
+        float[] vbo = new float[normalBufferList.size() * 3];
+        for (int i = 0; i < normalBufferList.size(); i++) {
+            vbo[3 * i] = normalBufferList.get(i)[0];
+            vbo[3 * i + 1] = normalBufferList.get(i)[1];
+            vbo[3 * i + 2] = normalBufferList.get(i)[2];
+        }
+        normalBuffer = vbo;
+    }
+
     private void generateVertexIndexBuffer() {
         int[] vbo = new int[vertexIndexBufferList.size() * 3];
         for (int i = 0; i < vertexIndexBufferList.size(); i++) {
@@ -193,55 +218,77 @@ public class modelLoader {
         uvIndexBuffer = vbo;
     }
 
+    private void generateNormalIndexBuffer() {
+        int[] vbo = new int[normalIndexBufferList.size() * 3];
+        for (int i = 0; i < normalIndexBufferList.size(); i++) {
+            vbo[3 * i] = normalIndexBufferList.get(i)[0];
+            vbo[3 * i + 1] = normalIndexBufferList.get(i)[1];
+            vbo[3 * i + 2] = normalIndexBufferList.get(i)[2];
+        }
+        normalIndexBuffer = vbo;
+    }
+
     private void generateIndexBuffer() {
 
         List<Integer> newIndexBuffer = new ArrayList<>();
 
-        // helper matrix stores index of a given vertex, UV pair
-        int[][] helperMatrix = new int[vertexBuffer.length][uvBuffer.length];
-        for (int[] row : helperMatrix) {
-            Arrays.fill(row, -1);
-        }
+        Map<Integer, int[]> foundIndeces = new HashMap<>();
+        int[] foundIndex;
 
         List<float[]> newVertexBuffer = new ArrayList<>();
         List<float[]> newUVBuffer = new ArrayList<>();
+        List<float[]> newNormalBuffer = new ArrayList<>();
 
         int count = 0;
-        int v, t;
+        int v, t, n;
+        boolean found;
 
         for (int i = 0; i < vertexIndexBuffer.length; i++) {
             v = vertexIndexBuffer[i];
             t = uvIndexBuffer[i];
+            n = normalIndexBuffer[i];
 
-            if (helperMatrix[v][t] == -1) {
+            found = false;
 
-                // new pair found
-                newVertexBuffer.add(new float[] {
+            // if index hasn't been found yet
+            for (int j = 0; j < foundIndeces.size(); j++) {
+                foundIndex = foundIndeces.get(j);
+                if (foundIndex[0] == v && foundIndex[1] == t && foundIndex[2] == n) {
+                    found = true;
+                    // pair found previously
+                    newIndexBuffer.add(j);
+                }
+            }
+            if (!found) {// new pair found
+                newVertexBuffer.add(new float[]{
                         vertexBuffer[3 * v],
                         vertexBuffer[3 * v + 1],
                         vertexBuffer[3 * v + 2]
                 });
-                newUVBuffer.add(new float[] {
+                newUVBuffer.add(new float[]{
                         uvBuffer[2 * t],
                         uvBuffer[2 * t + 1]
+                });
+                newNormalBuffer.add(new float[]{
+                        normalBuffer[3 * n],
+                        normalBuffer[3 * n + 1],
+                        normalBuffer[3 * n + 2]
                 });
 
                 // index and memoise new pair location
                 newIndexBuffer.add(count);
-                helperMatrix[v][t] = count;
+                foundIndeces.put(count, new int[]{v, t, n});
                 count++;
-
-            } else {
-                // pair found previously
-                newIndexBuffer.add(helperMatrix[v][t]);
             }
         }
 
         vertexBufferList = newVertexBuffer;
         uvBufferList = newUVBuffer;
+        normalBufferList = newNormalBuffer;
 
         generateVertexBuffer();
         generateUVBuffer();
+        generateNormalBuffer();
 
         int[] vbo = new int[newIndexBuffer.size()];
         for (int i = 0; i < newIndexBuffer.size(); i++) {
@@ -257,6 +304,10 @@ public class modelLoader {
 
     public float[] getUVBuffer() {
         return uvBuffer;
+    }
+
+    public float[] getNormalBuffer() {
+        return normalBuffer;
     }
 
     public int[] getIndexBuffer() {
