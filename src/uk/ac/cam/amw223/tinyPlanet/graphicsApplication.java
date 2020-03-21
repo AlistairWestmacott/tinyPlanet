@@ -181,7 +181,7 @@ public class graphicsApplication {
         // texture is unused because the texture is bound to openGL within loadBMP_custom()
         int Texture = loadTexture("resources/magic-arrow.png");
 
-        modelLoader model = new modelLoader("resources/monkey.obj");
+        modelLoader model = new modelLoader("resources/untitled4.obj");
 
         g_vertex_buffer_data = model.getVertexBuffer();
         g_uv_buffer_data = model.getUVBuffer();
@@ -257,12 +257,12 @@ public class graphicsApplication {
             // Thus we need a separate transformation matrix for normals
             normal_matrix = new Matrix3f();
             // Calculate normal transformation matrix
-            mvp.get3x3(normal_matrix);
+            Model.get3x3(normal_matrix);
             normal_matrix = normal_matrix.invert();
-            //normal_matrix = normal_matrix.transpose();
+            normal_matrix = normal_matrix.transpose();
 
             normal_matrix.get(bufferNormalMVP);
-            glUniformMatrix3fv(normalMVPLocation, true, bufferNormalMVP);
+            glUniformMatrix3fv(normalMVPLocation, false, bufferNormalMVP);
 
             // CAMERA CONTROLS
 

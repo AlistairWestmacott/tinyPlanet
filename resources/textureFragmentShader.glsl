@@ -34,9 +34,10 @@ void main(){
 
     // Sample the texture and replace diffuse surface colour (C_diff) with texel value
     vec3 C_diff = vec3(texture( texSampler, UV ));
+    C_diff = vec3(1,1,1);
     vec3 C_spec = vec3(1, 1, 1);
 
-    float I = 0.5; // TODO: figure out what this needs to be, I'm not sure where to get this value from
+    float I = 1; // TODO: figure out what this needs to be, I'm not sure where to get this value from
 
     // Calculate colour using Phong illumination model
 
@@ -51,10 +52,12 @@ void main(){
 
 
     //linear_color = I_a * C_diff + diffuse + specular;
-    linear_color = I_a * diffuse + specular;
+//    linear_color = I_a * diffuse + specular;
+    color = C_diff * max(0, dot(n, L));
+    color = specular + diffuse;
 
     // what actually is tonemapping?
-    color = tonemap(linear_color);
+//    color = tonemap(linear_color);
 
     // Output color = color of the texture at the specified UV
     //color = texture( texSampler, UV ).rgb;

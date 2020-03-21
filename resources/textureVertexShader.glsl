@@ -21,8 +21,8 @@ void main(){
     gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
     frag_pos = vec3(gl_Position.x, gl_Position.y, gl_Position.z);
 
-//    frag_normal = normalMVP * vertexNormal;
-    frag_normal = vertexNormal;
+    frag_normal = normalMVP * vertexNormal;
+//    frag_normal = vertexNormal;
 
     // UV of the vertex. No special space for this one.
     UV = vertexUV;
