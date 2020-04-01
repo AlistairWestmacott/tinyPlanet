@@ -26,18 +26,18 @@ vec3 tonemap(vec3 linearRGB)
 
 void main(){
 
-    vec3 I_a = vec3(0.5, 0.5, 0.5);
-    float k_d = 0.8;
-    float k_s = 0.2;
-    vec3 linear_color = vec3(0, 0, 0);
-    float alpha = 10; // TODO: not sure what alpha actually represents
+    float I_a = 0.01;
+    float k_d = 0.5;
+    float k_s = 0.5;
+    vec3 linear_color = vec3(0);
+    float alpha = 10; // not sure what alpha actually represents
 
     // Sample the texture and replace diffuse surface colour (C_diff) with texel value
     vec3 C_diff = vec3(texture( texSampler, UV ));
-//    C_diff = vec3(1,1,1);
-    vec3 C_spec = vec3(1, 1, 1);
+//    C_diff = vec3(0.8,0.2,0.2);
+    vec3 C_spec = vec3(0.5);
 
-    float I = 0.5; // TODO: figure out what this needs to be, I'm not sure where to get this value from
+    float I = 0.5; // figure out what this needs to be, I'm not sure where to get this value from
 
     // Calculate colour using Phong illumination model
 
@@ -47,14 +47,31 @@ void main(){
     vec3 V = normalize(cameraPosition - frag_pos);
     vec3 R = normalize(reflect(L * -1, n));
 
-    vec3 diffuse = C_diff * k_d * I * max(0, dot(n, L));
-    vec3 specular = C_spec * k_s * I * pow(max(0, dot(R, V)), alpha);
+    float diffuse = k_d * I * max(0, dot(n, L));
+    float specular = k_s * I * pow(max(0, dot(R, V)), alpha);
 
+    float diffMin = 0.01;
+    float diffMed = 0.1;
+
+    float specMin = 0.1;
+
+
+    if (diffuse > diffMed) {
+        linear_color += C_diff * k_d;
+    } else if (diffuse > diffMin) {
+        linear_color += C_diff * k_d * 0.5;
+    } else {
+        linear_color += C_diff * k_d * I_a;
+    }
+
+    if (specular > specMin) {
+        linear_color += C_spec * k_s;
+    }
 
     //linear_color = I_a * C_diff + diffuse + specular;
 //    linear_color = I_a * diffuse + specular;
     color = C_diff * max(0, dot(n, L));
-    linear_color = specular + diffuse;
+    //linear_color = specular + diffuse;
 
     // what actually is tonemapping?
     color = tonemap(linear_color);

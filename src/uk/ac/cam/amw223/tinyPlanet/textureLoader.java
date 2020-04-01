@@ -41,18 +41,10 @@ public class textureLoader {
                 data[3 * (x + y * width) + 2] = (byte) c.getBlue();
             }
         }
-
-        //DataBufferByte dbb = new DataBufferByte(image.getData().getDataBuffer());
-        //ByteArrayOutputStream out = new ByteArrayOutputStream();
-        //ImageIO.write(image, "png", out);
     }
 
     public ByteBuffer buffer() {
         ByteBuffer buf = BufferUtils.createByteBuffer(width*height*3);
-//        for(int i = 0; i < width * height * 3; i++)
-//        {
-//            buf.put(data[i]);
-//        }
 
         for (int i = width * height; i > 0 ; i-- ) {
             buf.put(data[3*i-3]);
@@ -60,7 +52,6 @@ public class textureLoader {
             buf.put(data[3*i-1]);
         }
 
-        //buf = BufferUtils.createByteBuffer(width*height*3);
         buf.flip();
         return buf;
     }
@@ -71,10 +62,5 @@ public class textureLoader {
 
     public int getHeight() {
         return height;
-    }
-
-    public static void main(String[] args) {
-        textureLoader tex = new textureLoader("resources/magic-arrow.png");
-        System.out.println();
     }
 }

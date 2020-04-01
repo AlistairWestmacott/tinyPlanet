@@ -3,3 +3,5 @@
 *.iml
 /.idea/
 *.log
+
+*/.DS_Store
