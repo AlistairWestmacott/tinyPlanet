@@ -8,15 +8,24 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 public class textureLoader {
 
     private byte[] data;
     private int width;
     private int height;
+    ByteBuffer buf;
+
+    private static Map<String, ByteBuffer> bufCache;
+    private static Map<String, Integer> widthCache;
 
     public textureLoader(String path) {
         try {
+            bufCache = new HashMap<>();
+            widthCache = new HashMap<>();
+
             loadTexture(path);
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -24,27 +33,41 @@ public class textureLoader {
     }
 
     private void loadTexture(String path) throws IOException {
-        File imageFile = new File(path);
-        BufferedImage image = ImageIO.read(imageFile);
-        Color c;
 
-        width = image.getWidth();
-        height = image.getHeight();
+        if (bufCache.containsKey(path)) {
 
-        data = new byte[width * height * 3];
+            buf = bufCache.get(path);
+            width = widthCache.get(path);
+            height = (data.length / width) / 3;
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                c = new Color(image.getRGB(x, y));
-                data[3 * (x + y * width)] = (byte) c.getRed();
-                data[3 * (x + y * width) + 1] = (byte) c.getGreen();
-                data[3 * (x + y * width) + 2] = (byte) c.getBlue();
+        } else {
+            File imageFile = new File(path);
+            BufferedImage image = ImageIO.read(imageFile);
+            Color c;
+
+            width = image.getWidth();
+            height = image.getHeight();
+
+            data = new byte[width * height * 3];
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    c = new Color(image.getRGB(x, y));
+                    data[3 * (x + y * width)] = (byte) c.getRed();
+                    data[3 * (x + y * width) + 1] = (byte) c.getGreen();
+                    data[3 * (x + y * width) + 2] = (byte) c.getBlue();
+                }
             }
+
+            generateBuffer();
+
+            bufCache.put(path, buf);
+            widthCache.put(path, width);
         }
     }
 
-    public ByteBuffer buffer() {
-        ByteBuffer buf = BufferUtils.createByteBuffer(width*height*3);
+    private void generateBuffer() {
+        buf = BufferUtils.createByteBuffer(width*height*3);
 
         for (int i = width * height; i > 0 ; i-- ) {
             buf.put(data[3*i-3]);
@@ -53,6 +76,9 @@ public class textureLoader {
         }
 
         buf.flip();
+    }
+
+    public ByteBuffer buffer() {
         return buf;
     }
 

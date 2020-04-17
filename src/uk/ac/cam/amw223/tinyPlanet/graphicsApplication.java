@@ -3,6 +3,7 @@ package uk.ac.cam.amw223.tinyPlanet;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.*;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
@@ -28,16 +29,36 @@ public class graphicsApplication {
     private long window;
     private int programID;
 
+    // locations for various uniforms in the vertex shader (N.B. not the location in world space)
+    private int mvpLocation;
+    private int mvpNormalLocation;
+    private int cameraLocation;
+    private int lightSourceLocation;
+
+    private int vao;
+    private int vertexBuffer;
+    private int uvBuffer;
+    private int normalBuffer;
+    private int indexBuffer;
+
+    private Vector3f cameraPosition;
+    private Vector4f lightSource = new Vector4f();
+    gameObject light;
+
     private Matrix4f projection;
     private Matrix4f mvp = new Matrix4f();
 
-    public void run() {
+    double lastTime;
+    double currentTime;
 
+    private gameUniverse universe = new gameUniverse();
+
+    public void run() {
         try {
             init();
 
             // todo: while (!finished) {finished = loop();}
-            // this will basically mean that loop only includes loop code and not initialisation code too
+            //  this will basically mean that loop only includes loop code and not initialisation code too
             loop();
 
             // Free the window callbacks and destroy the window
@@ -75,7 +96,7 @@ public class graphicsApplication {
 
 
         // Create the window
-        window = glfwCreateWindow(500, 580, "Tiny Planet", NULL, NULL);
+        window = glfwCreateWindow(1920, 1080, "Tiny Planet", NULL, NULL);
         if ( window == NULL )
             throw new RuntimeException("Failed to create the GLFW window");
 
@@ -104,31 +125,20 @@ public class graphicsApplication {
             );
         } // the stack frame is popped automatically
 
-        // Make the OpenGL context current
         glfwMakeContextCurrent(window);
+
         // Enable v-sync
         glfwSwapInterval(1);
 
-        // Make the window visible
         glfwShowWindow(window);
 
-
-
-        // This line is critical for LWJGL's interoperation with GLFW's
-        // OpenGL context, or any context that is managed externally.
-        // LWJGL detects the context that is current in the current thread,
-        // creates the GLCapabilities instance and makes the OpenGL
-        // bindings available for use.
         GL.createCapabilities();
 
-        programID = LoadShaders("resources/textureVertexShader.glsl", "resources/toonFragmentShader.glsl");
+        programID = LoadShaders("resources/shaders/textureVertexShader.glsl", "resources/shaders/toonFragmentShader.glsl");
 
-        // Enable depth test
         glEnable(GL_DEPTH_TEST);
-        // Accept fragment if it closer to the camera than the former one
         glDepthFunc(GL_LESS);
 
-        // Set the clear color
         glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
 
         glUseProgram(programID);
@@ -137,303 +147,170 @@ public class graphicsApplication {
         int[] windowHeight = new int[1];
         glfwGetWindowSize(window, windowWidth, windowHeight);
 
-        // projection matrix is constant
-        // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+        // todo: remove hard coded test values
+
+        universe.addObject("smooth-sphere", "blue-face", true);
+        universe.getMainObject().setVelocity(new Vector3f(0, 0.5f, 0));
+        universe.addObject("smooth-sphere", "red-face", true);
+//        universe.getMainObject().setVelocity(new Vector3f(0.1f, 0, 0));
+        universe.getMainObject().setPosition(new Vector3f(1, 1, 1));
+        light = new gameObject("magic-cube", "checkerboard");
+        light.setPosition(new Vector3f(0, 5, 10));
+//        light.setVelocity(new Vector3f(0.1f, 0.1f, 0.1f));
+        universe.addObject("smooth-sphere", "green-face", true);
+        universe.getMainObject().setVelocity(new Vector3f(0, -0.5f, -0.6f));
+        universe.addObject(light, true);
+
         projection = new Matrix4f().perspective((float)Math.toRadians(45.0f),
-                (float) windowWidth[0] / (float)windowHeight[0],
+                (float) windowWidth[0] / (float) windowHeight[0],
                 0.1f,
                 100.0f);
 
+        mvpLocation = glGetUniformLocation(programID, "MVP");
+        mvpNormalLocation = glGetUniformLocation(programID, "normalMVP");
+        cameraLocation = glGetUniformLocation(programID, "camera");
+        lightSourceLocation = glGetUniformLocation(programID, "lightSourcePosition");
+
+
+        currentTime = glfwGetTime();
     }
 
     private void loop() {
 
-        // Camera matrix
+        Matrix4f model, view;
 
-        // todo: put view matrix generation inside loop and parameterize it based on main game objects location
-        Matrix4f View = new Matrix4f().lookAt(
-            new Vector3f(4,3,3), // Camera is at (4,3,3), in World Space
-            new Vector3f(0,0,0), // and looks at the origin
-            new Vector3f(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-        );
+        Matrix3f mvpNormal;
 
-        // Model matrix : an identity matrix (model will be at the origin)
-        // todo: model matrix is generated by game object?
-        // main game object has identity model matrix
-        // all other game objects determine model matrix based on main game object (inverse of main game objects?)
-        Matrix4f Model = new Matrix4f().identity();
-        // Our ModelViewProjection : multiplication of our 3 matrices
+        int texID;
 
-        projection.mul(View, mvp);
-        mvp.mul(Model); // Remember, matrix multiplication is the other way around
-
-        // Transformation by a nonorthogonal matrix does not preserve angles
-        // Thus we need a separate transformation matrix for normals
-        Matrix3f normal_matrix;
-
-        // Get a handle for our "MVP" uniform
-        // Only during the initialisation
-        int MatrixID = glGetUniformLocation(programID, "MVP");
-
-        // Send our transformation to the currently bound shader, in the "MVP" uniform
-        // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-        glUniformMatrix4fv(MatrixID, false, mvp.get(new float[16]));// this new float[] bit could be a source of errors
-
-        float time = 0f;
-        float[] rgb = new float[3];
-        boolean running = true;
-        boolean toggle = false;//for debouncing?
-        int i;
-
-        // texture is unused because the texture is bound to openGL within loadBMP_custom()
-        int Texture = loadTexture("resources/smooth-sphere.png");
-
-        modelLoader model = new modelLoader("resources/smooth-sphere.obj");
-
-        float[] g_vertex_buffer_data = model.getVertexBuffer();
-        float[] g_uv_buffer_data = model.getUVBuffer();
-        float[] g_normal_buffer_data = model.getNormalBuffer();
-        int[] g_index_buffer_data = model.getIndexBuffer();
-
-        // position
-        Vector3f position = new Vector3f( 0, 0, 5 );
-        // horizontal angle : toward -Z
-        float horizontalAngle = 3.14f;
-        // vertical angle : 0, look at the horizon
-        float verticalAngle = 0.0f;
-        // Initial Field of View
-        float initialFoV = 45.0f;
-
-        float speed = 3.0f; // 3 units / second
-        float mouseSpeed = 0.05f;
-
-        double xpos, ypos;
-        DoubleBuffer xBuffer = BufferUtils.createDoubleBuffer(1);
-        DoubleBuffer yBuffer = BufferUtils.createDoubleBuffer(1);
-
-        double lastTime = 0.0;
-        double currentTime = glfwGetTime();
         float deltaTime;
 
-        // Right vector
-        Vector3f right = new Vector3f(
-                (float)Math.sin(horizontalAngle - 3.14f/2.0f),
-                0.0f,
-                (float)Math.cos(horizontalAngle - 3.14f/2.0f)
-        );
-        Vector3f direction = new Vector3f(
-                (float)Math.cos(verticalAngle) * (float)Math.sin(horizontalAngle),
-                (float)Math.sin(verticalAngle),
-                (float)Math.cos(verticalAngle) * (float)Math.cos(horizontalAngle)
-        );
+        boolean toggle = true;
+        int last = 0;
 
-        // Up vector : perpendicular to both direction and right
-        Vector3f up = new Vector3f();
-        right.cross(direction, up);
-        Vector3f tempDirection = new Vector3f();
-
-
-        int mvpLocation = glGetUniformLocation(programID, "MVP");
-        int normalMVPLocation = glGetUniformLocation(programID, "normalMVP");
-        FloatBuffer bufferMVP = BufferUtils.createFloatBuffer(16);
-        FloatBuffer bufferNormalMVP = BufferUtils.createFloatBuffer(9);
-
-
-        // Run the rendering loop until the user has attempted to close
-        // the window or has pressed the ESCAPE key.
+        // todo: how is the callback different to the getKey part of the while condition? Can one be trimmed? why?
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
-            // clear the framebuffer
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-
-            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-                if (!toggle) {
-                    running = !running;
-                    toggle = true;
-                }
-            } else {
-                toggle = false;
-            }
-
-            // SHADING
-
-            mvp.get(bufferMVP);
-            glUniformMatrix4fv(mvpLocation, false, bufferMVP);
-
-            // Transformation by a nonorthogonal matrix does not preserve angles
-            // Thus we need a separate transformation matrix for normals
-            normal_matrix = new Matrix3f();
-            // Calculate normal transformation matrix
-            Model.get3x3(normal_matrix);
-            normal_matrix = normal_matrix.invert();
-            normal_matrix = normal_matrix.transpose();
-
-            normal_matrix.get(bufferNormalMVP);
-            glUniformMatrix3fv(normalMVPLocation, false, bufferNormalMVP);
-
-            // CAMERA CONTROLS
-
 
             lastTime = currentTime;
             currentTime = glfwGetTime();
             deltaTime = (float)(currentTime - lastTime);
-/*
-//            // reading the mouse
-//            glfwGetCursorPos(window, xBuffer, yBuffer);
-//            xpos = xBuffer.get(0);
-//            ypos = yBuffer.get(0);
-//            // Reset mouse position for next frame
-//            glfwSetCursorPos(window, windowWidth[0]/2, windowHeight[0]/2);
-//            // Compute new orientation
-//            horizontalAngle += mouseSpeed * deltaTime * (float)(windowWidth[0]/2.0f - xpos );
-//            verticalAngle   += mouseSpeed * deltaTime * (float)(windowHeight[0]/2.0f - ypos );
-//
-//            // Direction : Spherical coordinates to Cartesian coordinates conversion
-//            direction = new Vector3f(
-//                    (float)Math.cos(verticalAngle) * (float)Math.sin(horizontalAngle),
-//                    (float)Math.sin(verticalAngle),
-//                    (float)Math.cos(verticalAngle) * (float)Math.cos(horizontalAngle)
-//            );
-//
-//            right = new Vector3f(
-//                    (float)Math.sin(horizontalAngle - 3.14f/2.0f),
-//                    0.0f,
-//                    (float)Math.cos(horizontalAngle - 3.14f/2.0f)
-//            );
-//
-//            // Move forward
-//            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-//                direction.mul(deltaTime * speed, tempDirection);
-//                position.add(tempDirection);
-//            }
-//            // Move backward
-//            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-//                direction.mul(deltaTime * speed, tempDirection);
-//                position.sub(tempDirection);
-//            }
-//            // Strafe right
-//            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-//                right.mul(deltaTime * speed, tempDirection);
-//                position.add(tempDirection);
-//            }
-//            // Strafe left
-//            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-//                right.mul(deltaTime * speed, tempDirection);
-//                position.sub(tempDirection);
-//            }
-//
-//            // Projection matrix : 45&deg; Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-//            Projection = new Matrix4f().perspective((float)Math.toRadians(initialFoV),
-//                    (float) windowWidth[0] / (float)windowHeight[0],
-//                    0.1f,
-//                    100.0f);
-//
-//            position.add(direction, tempDirection);
-//            // Camera matrix
-//            View = new Matrix4f().lookAt(
-//                    position,          // Camera is here
-//                    tempDirection,     // and looks here : at the same position, plus "direction"
-//                    up                 // Head is up (set to 0,-1,0 to look upside-down)
-//            );
-//            // Our ModelViewProjection : multiplication of our 3 matrices
-//            mvp = Projection.mul(View).mul(Model); // Remember, matrix multiplication is the other way around
-//
-//            // Send our transformation to the currently bound shader, in the "MVP" uniform
-//            // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-//            glUniformMatrix4fv(MatrixID, false, mvp.get(new float[16]));// this new float[] bit could be a source of errors
-*/
 
-            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-                // change model matrix
-                Model.add(new Matrix4f().set(
-                        new float[]{
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                deltaTime, 0f, 0f, 0f}
-                                ));
+            universe.nextFrame(deltaTime);
+//            lightSource = new Vector3f(universe.getMainObject().position());
+//
+//            lightSource.mul(-1);
+
+            view = generateViewMatrix();
+
+            lightSource = new Vector4f(light.r, 1);
+
+//            lightSource.mul(light.modelMatrix());
+            lightSource.mul(view);
+            lightSource.mul(projection);
+
+            lightSource.x = lightSource.x / lightSource.w;
+            lightSource.y = lightSource.y / lightSource.w;
+            lightSource.z = lightSource.z / lightSource.w;
+            lightSource.x = 1;
+
+            glUniform3fv(cameraLocation, new float[]{cameraPosition.x, cameraPosition.y, cameraPosition.z});
+            glUniform3fv(lightSourceLocation, new float[]{lightSource.x, lightSource.y, lightSource.z});
+
+            // model loop, one iteration per model in the scene
+            while (universe.nextObject()) {
+
+                model = universe.currentModel();
+                projection.mul(view, mvp);
+                mvp.mul(model);
+
+                glUniformMatrix4fv(mvpLocation, false, mvp.get(new float[16]));
+
+                // Transformation by a non-orthogonal matrix does not preserve angles
+
+                mvpNormal = new Matrix3f();
+                model.get3x3(mvpNormal);
+                mvpNormal = mvpNormal.invert();
+                mvpNormal = mvpNormal.transpose();
+
+                glUniformMatrix3fv(mvpNormalLocation, false, mvpNormal.get(new float[9]));
+
+                texID = loadTexture(universe.currentTexPath());
+
+
+                // todo: which parts of the buffer uploading can be moved to init?
+
+                // todo: what does this line do? Is it a remnant from an older version of the code?
+                vao = glGenVertexArrays();
+                glBindVertexArray(vao);
+
+                vertexBuffer = glGenBuffers();
+                glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+                glBufferData(GL_ARRAY_BUFFER, universe.currentVertexBuffer(), GL_STATIC_DRAW);
+                glVertexAttribPointer(0, 3, GL_FLOAT, false,0, 0);
+                glEnableVertexAttribArray(0);
+
+                uvBuffer = glGenBuffers();
+                glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
+                glBufferData(GL_ARRAY_BUFFER, universe.currentUVBuffer(), GL_STATIC_DRAW);
+                glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
+                glEnableVertexAttribArray(1);
+
+                normalBuffer = glGenBuffers();
+                glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
+                glBufferData(GL_ARRAY_BUFFER, universe.currentNormalBuffer(), GL_STATIC_DRAW);
+                glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+                glEnableVertexAttribArray(2);
+
+                indexBuffer = glGenBuffers();
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, universe.currentIndexBuffer(), GL_STATIC_DRAW);
+
+
+                glDrawElements(
+                        GL_TRIANGLES,
+                        universe.currentIndexBuffer().length,
+                        GL_UNSIGNED_INT,
+                        0
+                );
             }
-            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
-                // change model matrix
-                Model.add(new Matrix4f().set(
-                        new float[]{
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                -deltaTime, 0f, 0f, 0f}
-                ));
-            }
-            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-                // change model matrix
-                Model.add(new Matrix4f().set(
-                        new float[]{
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, deltaTime, 0f, 0f}
-                ));
-            }
-            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-                // change model matrix
-                Model.add(new Matrix4f().set(
-                        new float[]{
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, 0f, 0f, 0f,
-                                0f, -deltaTime, 0f, 0f}
-                ));
-            }
-            // Our ModelViewProjection : multiplication of our 3 matrices
-            projection.mul(View, mvp);
-            mvp.mul(Model); // Remember, matrix multiplication is the other way around
 
-            int vao = glGenVertexArrays();
-            glBindVertexArray(vao);
+            glfwSwapBuffers(window);
 
-            int vbo = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, g_vertex_buffer_data, GL_STATIC_DRAW);
-            glVertexAttribPointer(0, 3, GL_FLOAT, false,0, 0);
-            glEnableVertexAttribArray(0);
-
-            int uvBuffer = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, uvBuffer);
-            glBufferData(GL_ARRAY_BUFFER, g_uv_buffer_data, GL_STATIC_DRAW);
-            glVertexAttribPointer(1, 2, GL_FLOAT, false,0, 0);
-            glEnableVertexAttribArray(1);
-
-            //glEnableVertexAttribArray();
-
-            int normalBuffer = glGenBuffers();
-            glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
-            glBufferData(GL_ARRAY_BUFFER, g_normal_buffer_data, GL_STATIC_DRAW);
-            // 3rd attribute buffer : normals
-            glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
-            glEnableVertexAttribArray(2);
-
-            // Generate a buffer for the indices
-            int indexBuffer = glGenBuffers();
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, g_index_buffer_data, GL_STATIC_DRAW);
-
-
-            //glDrawArrays(GL_TRIANGLES, 0, g_vertex_buffer_data.length);
-
-            // Draw the triangles !
-            glDrawElements(
-                    GL_TRIANGLES,      // mode
-                    g_index_buffer_data.length,    // count
-                    GL_UNSIGNED_INT,   // type
-                    0           // element array buffer offset
-            );
-
-
-            glfwSwapBuffers(window); // swap the color buffers
-
-            // Poll for window events. The key callback above will only be
-            // invoked during this call.
             glfwPollEvents();
         }
+    }
+
+    private Matrix4f generateViewMatrix() {
+
+        float zoom = 10;// todo: add controls for zoom
+
+        // camera Location Homogeneous
+        Vector4f cLH = new Vector4f(0, zoom, -zoom, 1);
+        cLH.mulProject(universe.getMainObject().modelMatrix());
+
+        cameraPosition = new Vector3f(cLH.x, cLH.y, cLH.z);
+
+        Vector3f facing = universe.getMainObject().r;
+
+        // normalised cartesian model matrix (i.e. no translations) todo: is this mathematically valid?
+        Matrix3f cartesianModel = new Matrix3f();
+        universe.getMainObject().modelMatrix().get3x3(cartesianModel);
+
+        Vector3f up = new Vector3f(0, 1, 0);
+        up.mul(cartesianModel);
+
+        // todo: remove debug values
+        cameraPosition = new Vector3f(0, 0, -10);
+        facing = new Vector3f(0, 0, 0);
+        up = new Vector3f(0, 1, 0);
+
+        return new Matrix4f().lookAt(
+                cameraPosition,
+                facing,
+                up
+        );
     }
 
     public void uploadMatrix4f(Matrix4f m, String target) {
@@ -506,6 +383,7 @@ public class graphicsApplication {
     }
 
     private int loadTexture(String path) {
+
         int textureID;
 
         textureLoader tex = new textureLoader(path);

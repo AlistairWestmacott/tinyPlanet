@@ -10,7 +10,12 @@ out vec2 UV;
 out vec3 frag_normal;    // fragment normal in world coordinates
 out vec3 frag_pos; 		// fragment position in world coordinates
 
-// Values that stay constant for the whole mesh.
+out vec3 cameraPosition;
+out vec3 lightSourcePosition;
+
+uniform vec3 camera;
+uniform vec3 lightSource;
+
 uniform mat4 MVP;
 
 uniform mat3 normalMVP;
@@ -22,9 +27,11 @@ void main(){
     frag_pos = vec3(gl_Position.x, gl_Position.y, gl_Position.z);
 
     frag_normal = normalMVP * vertexNormal;
-//    frag_normal = vertexNormal;
 
     // UV of the vertex. No special space for this one.
     UV = vertexUV;
+
+    cameraPosition = camera;
+    lightSourcePosition = lightSource;
 
 }

@@ -1,6 +1,7 @@
 package uk.ac.cam.amw223.tinyPlanet;
 
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -15,30 +16,36 @@ public class gameObject {
     protected int[] indexBuffer;
 
     protected int texID;
-
-    protected Matrix4f modelMatrix;
+    protected String texPath;
 
     protected Vector3f r;
     protected Vector3f v;
     protected Vector3f a;
     protected float m;
 
-    public gameObject(String name) {
-        this.name = name;
+    protected Quaternionf rotation;
+    protected Quaternionf rotationVelocity;
+    protected Quaternionf rotationAcceleration;// related to thrust
 
-        modelLoader ml = new modelLoader("resources/" + name + ".obj");
+    public gameObject(String modelName, String textureName) {
+        this.name = modelName + ":" + textureName;
+
+        modelLoader ml = new modelLoader("resources/objects/" + modelName + ".obj");
 
         vertexBuffer = ml.getVertexBuffer();
         uvBuffer = ml.getUVBuffer();
         normalBuffer = ml.getNormalBuffer();
         indexBuffer = ml.getIndexBuffer();
 
-        texID = loadTexture("resources/" + name + ".png");
+        texPath = "resources/textures/" + textureName + ".png";
+        texID = loadTexture(texPath);
 
         r = new Vector3f();
         v = new Vector3f();
         a = new Vector3f();
         m = 0.0f;
+
+        rotation = new Quaternionf(0, 0, 0, 1);
     }
 
     public void nextFrame(float dt) {
@@ -51,6 +58,7 @@ public class gameObject {
         a.mul(0.5f * dt * dt, accumulator);
         r.add(accumulator);
 
+        // simple collision detection, objects cannot go below 0
         if (r.y < 0) {
             r.set(r.x, 0, r.z);
         }
@@ -58,6 +66,8 @@ public class gameObject {
         // v = u + at
         a.mul(dt, accumulator);
         v.add(accumulator);
+
+        // todo: add rotational physics
     }
 
     protected static int loadTexture(String path) {
@@ -81,6 +91,19 @@ public class gameObject {
         return textureID;
     }
 
+    public Matrix4f modelMatrix() {
+        Matrix4f result = new Matrix4f();
+        Matrix4f translation = new Matrix4f(
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                r.x, r.y, r.z, 0
+        );
+        rotation.get(result);
+        result.add(translation);
+        return result;
+    }
+
     public float[] getVertexBuffer() { return vertexBuffer; }
 
     public float[] getUVBuffer() { return uvBuffer; }
@@ -91,7 +114,7 @@ public class gameObject {
 
     public int getTexID() { return texID; }
 
-    public Matrix4f getModelMatrix() { return modelMatrix; }
+    public String getTexPath() { return texPath; }
 
     // Getters and setters for physics values
 
