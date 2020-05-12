@@ -1,17 +1,19 @@
 #version 330 core
 
 in vec2 UV;
-in vec3 frag_normal;
-in vec3 frag_pos;
+in vec3 fragNormalV;
+in vec3 fragPosV;
 
-in vec3 cameraPosition;
-in vec3 lightSourcePosition;
+in vec3 cameraPosV;
+in vec3 lightPosV;
 
 const vec3 lightSourcePositionTest = vec3(0, 0, 10);
 
 out vec3 color;
 
 uniform sampler2D texSampler;
+
+uniform int shaderMode;
 
 // boundary conditions to create toon effect
 const float diffMin = 0.01;
@@ -39,39 +41,40 @@ void main(){
     vec3 C_diff = vec3(texture( texSampler, UV ));
     vec3 C_spec = vec3(0.5);
 
-    vec3 N = normalize(frag_normal);
-    vec3 L = normalize(lightSourcePosition - frag_pos);
-    vec3 V = normalize(cameraPosition - frag_pos);
+    vec3 N = normalize(fragNormalV);
+    vec3 L = normalize(lightPosV - fragPosV);
+    vec3 V = normalize(cameraPosV - fragPosV);
     vec3 R = normalize(reflect(-L, N));
 
     float diffuse = k_d * max(0, dot(N, L));
     float specular = k_s * pow(max(0, dot(V, R)), roughness);
 
+    if (shaderMode == 0) {
+        // phong shading model
+        linear_color = C_diff * I_a + C_diff * diffuse + C_spec * specular;
 
-    // ambient term
-    linear_color = C_diff * I_a;
-
-    if (diffuse > diffMed) {
-        linear_color += C_diff * k_d;
-    } else if (diffuse > diffMin) {
-        linear_color += C_diff * k_d * 0.5;
-    }
-
-    if (specular > specMin) {
-        linear_color += C_spec * k_s;
+    } else if (shaderMode == 1) {
+        // toon shading
+        linear_color = C_diff * I_a;
+        if (diffuse > diffMed) {
+            linear_color += C_diff * k_d;
+        } else if (diffuse > diffMin) {
+            linear_color += C_diff * k_d * 0.5;
+        }
+        if (specular > specMin) {
+            linear_color += C_spec * k_s;
+        }
     }
 
     float test = dot(N, L);
-    float threshold = 0;
+    float threshold = 1;
     if (test > threshold) {
 //        linear_color = vec3(test - threshold);
     } else {
 //        linear_color = vec3(0);
     }
 
-//    linear_color = frag_pos;
-//    linear_color = vec3(dot(N, L));
-//    linear_color = N;
+//    linear_color = vec3(max(0,dot(N, L)));
 
     color = tonemap(linear_color);
 }

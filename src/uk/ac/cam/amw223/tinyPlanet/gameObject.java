@@ -1,5 +1,6 @@
 package uk.ac.cam.amw223.tinyPlanet;
 
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -18,14 +19,23 @@ public class gameObject {
     protected int texID;
     protected String texPath;
 
+    gameUniverse universe;
+
     protected Vector3f r;
     protected Vector3f v;
     protected Vector3f a;
     protected float m;
 
-    protected Quaternionf rotation;
+    protected Quaternionf rotationRate;
+    protected Matrix3f rotation;
     protected Quaternionf rotationVelocity;
     protected Quaternionf rotationAcceleration;// related to thrust
+
+    protected Vector3f axisOfRotation;
+
+    protected double rotationSpeed = 0;
+
+    protected double theta = 0;
 
     public gameObject(String modelName, String textureName) {
         this.name = modelName + ":" + textureName;
@@ -45,12 +55,15 @@ public class gameObject {
         a = new Vector3f();
         m = 0.0f;
 
-        rotation = new Quaternionf(0, 0, 0, 1);
+        rotation = new Matrix3f();
+        rotationRate = new Quaternionf(0, 0, 0, 1);
+        axisOfRotation = new Vector3f(0, 1, 0);
     }
 
     public void nextFrame(float dt) {
         Vector3f accumulator = new Vector3f();
         // a = F/m;
+        a = universe.getGravityAtPoint(this);// already divided by planet mass
 
         // r = r_0 + ut + (at^2)/2
         v.mul(dt, accumulator);
@@ -60,7 +73,7 @@ public class gameObject {
 
         // simple collision detection, objects cannot go below 0
         if (r.y < 0) {
-            r.set(r.x, 0, r.z);
+//            r.set(r.x, 0, r.z);
         }
 
         // v = u + at
@@ -68,6 +81,23 @@ public class gameObject {
         v.add(accumulator);
 
         // todo: add rotational physics
+
+        theta = dt * rotationSpeed;
+        accumulator = new Vector3f();
+        axisOfRotation.mul((float)Math.sin(theta / 2.0), accumulator);
+        rotationRate = new Quaternionf(accumulator.x, accumulator.y, accumulator.z, (float)Math.cos(theta / 2.0));
+        Matrix3f rotate = new Matrix3f();
+        rotationRate.get(rotate);
+        rotation.mul(rotate);
+
+//        theta += dt * rotationSpeed;
+//        if (Math.abs(theta) > 2 * Math.PI) {
+//            theta = 0;
+//        }
+//        accumulator = new Vector3f();
+//        axisOfRotation.mul((float)Math.sin(theta / 2.0), accumulator);
+//
+//        rotationRate = new Quaternionf(accumulator.x, accumulator.y, accumulator.z, (float)Math.cos(theta / 2.0));
     }
 
     protected static int loadTexture(String path) {
@@ -92,15 +122,17 @@ public class gameObject {
     }
 
     public Matrix4f modelMatrix() {
-        Matrix4f result = new Matrix4f();
+        Matrix4f result;
         Matrix4f translation = new Matrix4f(
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                0, 0, 0, 0,
-                r.x, r.y, r.z, 0
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                r.x, r.y, r.z, 1
         );
-        rotation.get(result);
-        result.add(translation);
+//        rotation.get(result);
+        result = new Matrix4f(rotation);
+//        result.mul(translation);
+        translation.mul(result, result);
         return result;
     }
 
@@ -133,4 +165,14 @@ public class gameObject {
     public void setAcceleration(Vector3f value) { a = value; }
 
     public void setMass(float value) { m = value; }
+
+    public void setRotationSpeed(double value) { rotationSpeed = value; }
+
+    public void setAxisOfRotation(Vector3f value) { axisOfRotation = value.normalize(); }
+
+    public Matrix3f getRotation() { return rotation; }
+
+    public void setUniverse(gameUniverse universe) {
+        this.universe = universe;
+    }
 }

@@ -32,8 +32,10 @@ public class graphicsApplication {
     // locations for various uniforms in the vertex shader (N.B. not the location in world space)
     private int mvpLocation;
     private int mvpNormalLocation;
+    private int mvLocation;
     private int cameraLocation;
     private int lightSourceLocation;
+    private int shadeModeLocation;
 
     private int vao;
     private int vertexBuffer;
@@ -41,7 +43,6 @@ public class graphicsApplication {
     private int normalBuffer;
     private int indexBuffer;
 
-    private Vector3f cameraPosition;
     private Vector4f lightSource = new Vector4f();
     gameObject light;
 
@@ -51,7 +52,12 @@ public class graphicsApplication {
     double lastTime;
     double currentTime;
 
+    int demo;
+
     private gameUniverse universe = new gameUniverse();
+
+    int shadingMode;
+    final int shadingModes = 2;
 
     public void run() {
         try {
@@ -139,7 +145,11 @@ public class graphicsApplication {
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
 
-        glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+        if (demo == 1) {
+            glClearColor(0, 0, 0, 0);
+        } else {
+            glClearColor(0.5f, 0.5f, 0.5f, 0.0f);
+        }
 
         glUseProgram(programID);
 
@@ -147,19 +157,94 @@ public class graphicsApplication {
         int[] windowHeight = new int[1];
         glfwGetWindowSize(window, windowWidth, windowHeight);
 
-        // todo: remove hard coded test values
+        universe.init();
+        universe.getCam().setAxisOfRotation(new Vector3f(0, 1, 0));
 
-        universe.addObject("smooth-sphere", "blue-face", true);
-        universe.getMainObject().setVelocity(new Vector3f(0, 0.5f, 0));
-        universe.addObject("smooth-sphere", "red-face", true);
-//        universe.getMainObject().setVelocity(new Vector3f(0.1f, 0, 0));
-        universe.getMainObject().setPosition(new Vector3f(1, 1, 1));
-        light = new gameObject("magic-cube", "checkerboard");
-        light.setPosition(new Vector3f(0, 5, 10));
-//        light.setVelocity(new Vector3f(0.1f, 0.1f, 0.1f));
-        universe.addObject("smooth-sphere", "green-face", true);
-        universe.getMainObject().setVelocity(new Vector3f(0, -0.5f, -0.6f));
-        universe.addObject(light, true);
+        // object for the light source
+        light = new gameObject("smooth-sphere", "checkerboard");
+        light.setRotationSpeed(-0.2);
+        light.setPosition(new Vector3f(-10, 0, 0));
+        universe.addObject(light, false);
+
+        if (demo == 1) {
+            /*
+
+            Solar
+
+            This demo is a simulation of the solar system.
+
+            The problem is that all the real life values for distances and velocities and stuff are way too huge to be
+            reasonable to simulate. All the units are in metres, but since metres are an arbitrary unit in real life,
+            it might be quite easy to use a different arbitrary unit such as Astronomical Units that shrinks down the
+            scale of the solar system to make it easier to simulate. Just need to remember to scale the constants too
+            to keep the simulation accurate.
+
+             */
+            gameObject planet;
+            float[] masses = new float[] {
+                    0.330f,
+                    4.87f,
+                    5.97f,
+                    0.073f,
+                    0.642f,
+                    1898f,
+                    568f,
+                    86.8f,
+                    102f
+            };
+            float[] distanceFromSun = new float[] {
+                    57.9f,
+                    108.2f,
+                    149.6f,
+                    0.384f,
+                    227.9f,
+                    778.6f,
+                    1433.5f,
+                    2872.5f,
+                    4495.1f,
+            };
+            float[] orbitalVelocity = new float[] {
+                    47.4f,
+                    35.0f,
+                    29.8f,
+                    1.0f,
+                    24.1f,
+                    13.1f,
+                    9.7f,
+                    6.8f,
+                    5.4f
+            };
+            for (int i = 0; i < 9; i++) {
+                planet = new gameObject("smooth-sphere", "checkerboard");
+                planet.setPosition(new Vector3f(distanceFromSun[i] * 1E+9f, 0, 0));
+                planet.setVelocity(new Vector3f(0, 0, orbitalVelocity[i] * 1E+3f));
+                planet.setMass(masses[i] * 1E+24f);
+                universe.addObject(planet, true);
+            }
+            universe.getCam().setZoom(1E+10f);
+        } else if (demo == 0) {
+            /*
+
+            Sandbox
+
+            Some test shapes and textures for testing new features added to the code.
+
+             */
+
+            gameObject greenCube = new gameObject("magic-cube", "green-face");
+            greenCube.setPosition(new Vector3f(0, 0, 10));
+            greenCube.setAxisOfRotation(new Vector3f(0, 1, 0));
+            greenCube.setRotationSpeed(0.5);
+            universe.addObject(greenCube, false);
+
+            gameObject userObj = new gameObject("smooth-monkey", "blue-face");
+            userObj.setVelocity(new Vector3f(-0.4f, 0.1f, 0));
+            userObj.setRotationSpeed(0.8);
+            userObj.setAxisOfRotation(new Vector3f(1, 1, 1));
+            universe.addObject(userObj, true);
+
+            universe.getCam().cycleMode();
+        }
 
         projection = new Matrix4f().perspective((float)Math.toRadians(45.0f),
                 (float) windowWidth[0] / (float) windowHeight[0],
@@ -168,16 +253,18 @@ public class graphicsApplication {
 
         mvpLocation = glGetUniformLocation(programID, "MVP");
         mvpNormalLocation = glGetUniformLocation(programID, "normalMVP");
-        cameraLocation = glGetUniformLocation(programID, "camera");
-        lightSourceLocation = glGetUniformLocation(programID, "lightSourcePosition");
-
+        mvLocation = glGetUniformLocation(programID, "MV");
+        cameraLocation = glGetUniformLocation(programID, "cameraV");
+        lightSourceLocation = glGetUniformLocation(programID, "lightV");
+        shadeModeLocation = glGetUniformLocation(programID, "shaderMode");
 
         currentTime = glfwGetTime();
     }
 
     private void loop() {
 
-        Matrix4f model, view;
+        Matrix4f model, view, mv = new Matrix4f();
+        Vector4f cameraHomo;
 
         Matrix3f mvpNormal;
 
@@ -185,11 +272,73 @@ public class graphicsApplication {
 
         float deltaTime;
 
-        boolean toggle = true;
+        boolean cameraToggle = false, shadingToggle = false;
         int last = 0;
 
         // todo: how is the callback different to the getKey part of the while condition? Can one be trimmed? why?
         while ( !glfwWindowShouldClose(window) && glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS) {
+
+            Vector3f velocity = new Vector3f();
+            float dv = 1.5f;
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                dv = 3;
+            }
+            double dtheta = 0.75f;
+
+            // movement
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+                velocity.add(new Vector3f(0, 0, dv));
+            }
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+                velocity.add(new Vector3f(0, 0, -dv));
+            }
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+                velocity.add(new Vector3f(dv, 0, 0));
+            }
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+                velocity.add(new Vector3f(-dv, 0, 0));
+            }
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                velocity.add(new Vector3f(0, dv, 0));
+            }
+            if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+                velocity.add(new Vector3f(0, -dv, 0));
+            }
+            velocity.mul(universe.getCam().getRotation());
+            universe.getCam().setVelocity(velocity);
+            // rotation
+            if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+                universe.getCam().setRotationSpeed(dtheta);
+            } else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+                universe.getCam().setRotationSpeed(-dtheta);
+            } else {
+                universe.getCam().setRotationSpeed(0);
+            }
+
+            // camera/shading settings should only be cycled one step per button press
+            // not one step per frame
+
+            // camera mode
+            if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+                if (!cameraToggle) {
+                    universe.getCam().cycleMode();
+                    cameraToggle = true;
+                }
+            } else {
+                cameraToggle = false;
+            }
+            // shading mode
+            if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
+                if (!shadingToggle) {
+                    shadingMode = (shadingMode + 1) % shadingModes;
+                    shadingToggle = true;
+                }
+            } else {
+                shadingToggle = false;
+            }
+
+
+            glUniform1i(shadeModeLocation, shadingMode);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -202,20 +351,23 @@ public class graphicsApplication {
 //
 //            lightSource.mul(-1);
 
-            view = generateViewMatrix();
+            view = universe.getCam().viewMatrix();
 
-            lightSource = new Vector4f(light.r, 1);
+            lightSource = new Vector4f(light.position(), 1);
+
+            lightSource.mul(view);
+
+            cameraHomo = new Vector4f(universe.getCam().position(), 1);
+            cameraHomo.mul(view);
 
 //            lightSource.mul(light.modelMatrix());
-            lightSource.mul(view);
-            lightSource.mul(projection);
+//            lightSource.mul(view);
+//            lightSource.mul(projection);
 
-            lightSource.x = lightSource.x / lightSource.w;
-            lightSource.y = lightSource.y / lightSource.w;
-            lightSource.z = lightSource.z / lightSource.w;
-            lightSource.x = 1;
+            normaliseHomogeneous(lightSource);
+            normaliseHomogeneous(cameraHomo);
 
-            glUniform3fv(cameraLocation, new float[]{cameraPosition.x, cameraPosition.y, cameraPosition.z});
+            glUniform3fv(cameraLocation, new float[]{cameraHomo.x, cameraHomo.y, cameraHomo.z});
             glUniform3fv(lightSourceLocation, new float[]{lightSource.x, lightSource.y, lightSource.z});
 
             // model loop, one iteration per model in the scene
@@ -235,6 +387,12 @@ public class graphicsApplication {
                 mvpNormal = mvpNormal.transpose();
 
                 glUniformMatrix3fv(mvpNormalLocation, false, mvpNormal.get(new float[9]));
+
+
+                view.mul(model, mv);
+
+                glUniformMatrix4fv(mvLocation, false, mv.get(new float[16]));
+
 
                 texID = loadTexture(universe.currentTexPath());
 
@@ -282,35 +440,13 @@ public class graphicsApplication {
         }
     }
 
-    private Matrix4f generateViewMatrix() {
-
-        float zoom = 10;// todo: add controls for zoom
-
-        // camera Location Homogeneous
-        Vector4f cLH = new Vector4f(0, zoom, -zoom, 1);
-        cLH.mulProject(universe.getMainObject().modelMatrix());
-
-        cameraPosition = new Vector3f(cLH.x, cLH.y, cLH.z);
-
-        Vector3f facing = universe.getMainObject().r;
-
-        // normalised cartesian model matrix (i.e. no translations) todo: is this mathematically valid?
-        Matrix3f cartesianModel = new Matrix3f();
-        universe.getMainObject().modelMatrix().get3x3(cartesianModel);
-
-        Vector3f up = new Vector3f(0, 1, 0);
-        up.mul(cartesianModel);
-
-        // todo: remove debug values
-        cameraPosition = new Vector3f(0, 0, -10);
-        facing = new Vector3f(0, 0, 0);
-        up = new Vector3f(0, 1, 0);
-
-        return new Matrix4f().lookAt(
-                cameraPosition,
-                facing,
-                up
-        );
+    private void normaliseHomogeneous(Vector4f v) {
+        if (v.w != 1) {
+            v.x = v.x / v.w;
+            v.y = v.y / v.w;
+            v.z = v.z / v.w;
+            v.w = 1;
+        }
     }
 
     public void uploadMatrix4f(Matrix4f m, String target) {
@@ -405,9 +541,31 @@ public class graphicsApplication {
         return textureID;
     }
 
+    public boolean setDemo(String name) {
+        if (name.equals("sandbox")) {
+            demo = 0;
+        } else if (name.equals("solar")) {
+            demo = 1;
+        } else if (name.equals("bounce")) {
+            demo = 2;
+        } else {
+            return false; // not a valid demo
+        }
+        return true;
+    }
 
     public static void main(String[] args) {
-        new graphicsApplication().run();
+
+        if (args.length != 1) {
+            System.out.printf("Error unexpected number of arguments, got %d expected 1", args.length);
+        } else {
+            graphicsApplication ga = new graphicsApplication();
+            if (ga.setDemo(args[0])) {
+                ga.run();
+            } else {
+                System.out.println("Invalid demo.");
+            }
+        }
     }
 
 }
